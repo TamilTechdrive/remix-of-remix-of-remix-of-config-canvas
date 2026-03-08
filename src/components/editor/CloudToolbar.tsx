@@ -12,6 +12,7 @@ interface CloudToolbarProps {
 
 const CloudToolbar = ({ onSave, onLoad }: CloudToolbarProps) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { savedConfigs, isLoading, currentConfigId, fetchConfigs, saveConfig, loadConfig, deleteConfig } = useConfigStorage();
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
