@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   X, Plus, Trash2, Eye, EyeOff, HelpCircle, Palette,
   StickyNote, ChevronDown, ChevronRight, Copy, RotateCcw,
+  Link2, Unlink, ArrowDown, ArrowUp, Paintbrush, Info,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,40 +47,59 @@ interface PropertiesPanelProps {
 }
 
 const OPERATOR_LABELS: Record<VisibilityCondition['operator'], string> = {
-  equals: 'Equals',
-  not_equals: 'Not Equals',
-  contains: 'Contains',
-  gt: 'Greater Than',
-  lt: 'Less Than',
-  is_true: 'Is True',
-  is_false: 'Is False',
-  is_empty: 'Is Empty',
-  is_not_empty: 'Is Not Empty',
+  equals: '= Equals',
+  not_equals: '≠ Not Equals',
+  contains: '∋ Contains',
+  gt: '> Greater Than',
+  lt: '< Less Than',
+  is_true: '✓ Is True',
+  is_false: '✗ Is False',
+  is_empty: '∅ Is Empty',
+  is_not_empty: '◉ Is Not Empty',
+};
+
+const OPERATOR_SHORT: Record<VisibilityCondition['operator'], string> = {
+  equals: '=',
+  not_equals: '≠',
+  contains: '∋',
+  gt: '>',
+  lt: '<',
+  is_true: '✓',
+  is_false: '✗',
+  is_empty: '∅',
+  is_not_empty: '◉',
+};
+
+const FIELD_LABELS: Record<string, { label: string; desc: string }> = {
+  visible: { label: 'Visible', desc: 'Node visibility state' },
+  included: { label: 'Included', desc: 'Whether node is active in config' },
+  label: { label: 'Label', desc: 'Node display name' },
+  enabled: { label: 'Enabled', desc: 'Node enabled state' },
+  value: { label: 'Value', desc: 'Node current value' },
 };
 
 const NO_VALUE_OPERATORS = ['is_true', 'is_false', 'is_empty', 'is_not_empty'];
 
 const NODE_COLOR_PRESETS = [
-  { label: 'Default', value: '' },
-  { label: '🔵 Blue', value: 'blue' },
-  { label: '🟢 Green', value: 'green' },
-  { label: '🟡 Yellow', value: 'yellow' },
-  { label: '🔴 Red', value: 'red' },
-  { label: '🟣 Purple', value: 'purple' },
-  { label: '🟠 Orange', value: 'orange' },
+  { label: 'Default', value: '', color: 'bg-muted', ring: '' },
+  { label: 'Blue', value: 'blue', color: 'bg-node-container', ring: 'ring-node-container' },
+  { label: 'Green', value: 'green', color: 'bg-node-module', ring: 'ring-node-module' },
+  { label: 'Yellow', value: 'yellow', color: 'bg-node-group', ring: 'ring-node-group' },
+  { label: 'Red', value: 'red', color: 'bg-destructive', ring: 'ring-destructive' },
+  { label: 'Purple', value: 'purple', color: 'bg-node-option', ring: 'ring-node-option' },
+  { label: 'Orange', value: 'orange', color: 'bg-node-group', ring: 'ring-node-group' },
 ];
 
 const PropertiesPanel = ({ nodeId, data, onUpdate, onClose, onDelete, onAutoAdd, edges, allNodes }: PropertiesPanelProps) => {
   const [newPropKey, setNewPropKey] = useState('');
   const [newPropValue, setNewPropValue] = useState('');
   const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({
-    basic: true, visibility: true, properties: false, appearance: false, notes: false, deps: false,
+    basic: true, visibility: true, properties: false, appearance: false, notes: false, deps: true,
   });
 
   const toggleSection = (key: string) =>
     setSectionsOpen((s) => ({ ...s, [key]: !s[key] }));
 
-  // Parse conditions from data
   const conditions: VisibilityCondition[] =
     (data.properties?.visibilityConditions as unknown as VisibilityCondition[]) || [];
 
@@ -106,7 +126,6 @@ const PropertiesPanel = ({ nodeId, data, onUpdate, onClose, onDelete, onAutoAdd,
     });
   };
 
-  // Visibility condition helpers
   const addCondition = () => {
     const newCond: VisibilityCondition = {
       id: `vc_${Date.now()}`,
@@ -134,23 +153,23 @@ const PropertiesPanel = ({ nodeId, data, onUpdate, onClose, onDelete, onAutoAdd,
     });
   };
 
-  // Build human-readable visibility summary
-  const getVisibilitySummary = (): string => {
-    if (conditions.length === 0) return 'Always visible';
-    return conditions.map((c, i) => {
-      const sourceNode = allNodes.find((n) => n.id === c.sourceNodeId);
-      const sourceLabel = sourceNode ? (sourceNode.data as ConfigNodeData).label : '(select node)';
-      const op = OPERATOR_LABELS[c.operator];
-      const val = NO_VALUE_OPERATORS.includes(c.operator) ? '' : ` "${c.value}"`;
-      const prefix = i > 0 ? ` ${c.logic.toUpperCase()} ` : '';
-      return `${prefix}${sourceLabel}.${c.field} ${op}${val}`;
-    }).join('');
+  const getNodeLabel = (nId: string) => {
+    const n = allNodes.find((nd) => nd.id === nId);
+    return n ? (n.data as ConfigNodeData).label : '(unknown)';
   };
 
-  // Filter out internal property keys
+  const getNodeType = (nId: string) => {
+    const n = allNodes.find((nd) => nd.id === nId);
+    return n ? (n.data as ConfigNodeData).type : '';
+  };
+
   const displayProperties = Object.entries(data.properties).filter(
     ([key]) => !['visibilityConditions', 'notes', 'colorTag', 'userRules', 'impact_level', 'priority', 'tags', 'must_enable', 'must_disable'].includes(key)
   );
+
+  // Connection stats
+  const incomingEdges = edges.filter((e) => e.target === nodeId);
+  const outgoingEdges = edges.filter((e) => e.source === nodeId);
 
   return (
     <TooltipProvider>
@@ -237,132 +256,210 @@ const PropertiesPanel = ({ nodeId, data, onUpdate, onClose, onDelete, onAutoAdd,
                     />
                   </div>
                 </div>
+
+                {/* Quick connection stats */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-card border border-border">
+                    <ArrowDown className="w-3.5 h-3.5 text-node-container" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Incoming</p>
+                      <p className="text-xs font-semibold text-foreground">{incomingEdges.length}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-card border border-border">
+                    <ArrowUp className="w-3.5 h-3.5 text-node-module" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Outgoing</p>
+                      <p className="text-xs font-semibold text-foreground">{outgoingEdges.length}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CollapsibleSection>
 
-            {/* ── VISIBILITY CONDITIONS (replaces raw Visibility Rule) ── */}
+            {/* ── VISIBILITY CONDITIONS ── */}
             <CollapsibleSection
-              title="Visibility Conditions"
+              title="Visibility Rules"
               icon="👁️"
               badge={conditions.length > 0 ? String(conditions.length) : undefined}
+              badgeVariant={conditions.length > 0 ? 'active' : undefined}
               open={sectionsOpen.visibility}
               onToggle={() => toggleSection('visibility')}
             >
               <div className="space-y-3">
-                {/* Summary */}
-                <div className="bg-card border border-border rounded-md p-2.5 text-xs">
-                  <p className="text-muted-foreground font-mono text-[10px] leading-relaxed">
-                    {getVisibilitySummary()}
-                  </p>
-                </div>
-
-                {/* Explanation */}
-                <div className="bg-accent/5 border border-accent/20 rounded-md p-2 text-[10px] text-muted-foreground">
-                  <p className="font-medium text-foreground mb-0.5">How it works:</p>
-                  <p>Define conditions that control when this node appears. Pick a source node, a field to check, and an operator. Multiple conditions combine with AND/OR logic.</p>
-                </div>
-
-                {/* Conditions list */}
-                {conditions.map((cond, idx) => (
-                  <div key={cond.id} className="bg-card border border-border rounded-lg p-3 space-y-2">
-                    {idx > 0 && (
-                      <Select value={cond.logic} onValueChange={(v) => updateCondition(cond.id, { logic: v as 'and' | 'or' })}>
-                        <SelectTrigger className="h-6 w-16 text-[10px] bg-muted">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="and">AND</SelectItem>
-                          <SelectItem value="or">OR</SelectItem>
-                        </SelectContent>
-                      </Select>
+                {/* Current status */}
+                <div className={`flex items-center gap-2.5 p-2.5 rounded-lg border ${
+                  conditions.length === 0
+                    ? 'bg-node-module/5 border-node-module/20'
+                    : 'bg-accent/5 border-accent/20'
+                }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                    conditions.length === 0 ? 'bg-node-module/10' : 'bg-accent/10'
+                  }`}>
+                    {conditions.length === 0 ? (
+                      <Eye className="w-4 h-4 text-node-module" />
+                    ) : (
+                      <EyeOff className="w-4 h-4 text-accent" />
                     )}
-
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">When this node's…</label>
-                      <Select value={cond.sourceNodeId} onValueChange={(v) => updateCondition(cond.id, { sourceNodeId: v })}>
-                        <SelectTrigger className="mt-0.5 h-7 text-xs bg-card border-border">
-                          <SelectValue placeholder="Select source node" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[200px]">
-                          {allNodes.filter((n) => n.id !== nodeId).map((n) => {
-                            const nd = n.data as ConfigNodeData;
-                            return (
-                              <SelectItem key={n.id} value={n.id}>
-                                <span className="text-xs">[{nd.type}] {nd.label}</span>
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] text-muted-foreground">Field</label>
-                        <Select value={cond.field} onValueChange={(v) => updateCondition(cond.id, { field: v })}>
-                          <SelectTrigger className="mt-0.5 h-7 text-xs bg-card border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="visible">visible</SelectItem>
-                            <SelectItem value="included">included</SelectItem>
-                            <SelectItem value="label">label</SelectItem>
-                            <SelectItem value="enabled">enabled</SelectItem>
-                            <SelectItem value="value">value</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-muted-foreground">Operator</label>
-                        <Select value={cond.operator} onValueChange={(v) => updateCondition(cond.id, { operator: v as VisibilityCondition['operator'] })}>
-                          <SelectTrigger className="mt-0.5 h-7 text-xs bg-card border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Object.entries(OPERATOR_LABELS).map(([k, label]) => (
-                              <SelectItem key={k} value={k}>{label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {!NO_VALUE_OPERATORS.includes(cond.operator) && (
-                      <div>
-                        <label className="text-[10px] text-muted-foreground">Value</label>
-                        <Input
-                          value={cond.value}
-                          onChange={(e) => updateCondition(cond.id, { value: e.target.value })}
-                          className="mt-0.5 h-7 text-xs bg-card border-border"
-                          placeholder="Compare value..."
-                        />
-                      </div>
-                    )}
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-[10px] text-destructive/70 hover:text-destructive w-full"
-                      onClick={() => removeCondition(cond.id)}
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" /> Remove Condition
-                    </Button>
                   </div>
-                ))}
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      {conditions.length === 0 ? 'Always Visible' : 'Conditional Visibility'}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      {conditions.length === 0
+                        ? 'This node is always shown. Add rules to show/hide it based on other nodes.'
+                        : `${conditions.length} ${conditions.length === 1 ? 'rule controls' : 'rules control'} when this node appears.`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Visual rule cards */}
+                {conditions.map((cond, idx) => {
+                  const sourceLabel = cond.sourceNodeId ? getNodeLabel(cond.sourceNodeId) : null;
+                  const sourceType = cond.sourceNodeId ? getNodeType(cond.sourceNodeId) : '';
+                  const opLabel = OPERATOR_SHORT[cond.operator];
+
+                  return (
+                    <div key={cond.id} className="space-y-2">
+                      {/* Logic connector */}
+                      {idx > 0 && (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="h-px flex-1 bg-border" />
+                          <Select value={cond.logic} onValueChange={(v) => updateCondition(cond.id, { logic: v as 'and' | 'or' })}>
+                            <SelectTrigger className="h-5 w-14 text-[9px] font-bold bg-muted border-border rounded-full px-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="and">AND</SelectItem>
+                              <SelectItem value="or">OR</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="h-px flex-1 bg-border" />
+                        </div>
+                      )}
+
+                      {/* Rule card */}
+                      <div className="bg-card border border-border rounded-lg overflow-hidden">
+                        {/* Visual summary bar */}
+                        <div className="flex items-center gap-1.5 px-3 py-2 bg-muted/50 border-b border-border text-[10px]">
+                          <span className="text-muted-foreground">IF</span>
+                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 font-semibold">
+                            {sourceLabel || '…'}
+                          </Badge>
+                          <span className="text-muted-foreground">.</span>
+                          <span className="font-mono text-accent">{cond.field}</span>
+                          <span className="font-bold text-foreground">{opLabel}</span>
+                          {!NO_VALUE_OPERATORS.includes(cond.operator) && cond.value && (
+                            <Badge variant="secondary" className="text-[9px] h-4 px-1.5">
+                              {cond.value}
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="p-3 space-y-2.5">
+                          {/* Source node */}
+                          <div>
+                            <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+                              <Link2 className="w-3 h-3" /> Source Node
+                            </label>
+                            <Select value={cond.sourceNodeId} onValueChange={(v) => updateCondition(cond.id, { sourceNodeId: v })}>
+                              <SelectTrigger className="mt-1 h-8 text-xs bg-card border-border">
+                                <SelectValue placeholder="Choose a node to watch…" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-[200px]">
+                                {allNodes.filter((n) => n.id !== nodeId).map((n) => {
+                                  const nd = n.data as ConfigNodeData;
+                                  return (
+                                    <SelectItem key={n.id} value={n.id}>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-[8px] h-3.5 px-1">{nd.type}</Badge>
+                                        <span className="text-xs">{nd.label}</span>
+                                      </div>
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Field + Operator side by side */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[10px] font-medium text-muted-foreground">Field</label>
+                              <Select value={cond.field} onValueChange={(v) => updateCondition(cond.id, { field: v })}>
+                                <SelectTrigger className="mt-1 h-8 text-xs bg-card border-border">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(FIELD_LABELS).map(([k, { label, desc }]) => (
+                                    <SelectItem key={k} value={k}>
+                                      <div>
+                                        <span className="text-xs">{label}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-medium text-muted-foreground">Condition</label>
+                              <Select value={cond.operator} onValueChange={(v) => updateCondition(cond.id, { operator: v as VisibilityCondition['operator'] })}>
+                                <SelectTrigger className="mt-1 h-8 text-xs bg-card border-border">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Object.entries(OPERATOR_LABELS).map(([k, label]) => (
+                                    <SelectItem key={k} value={k}>{label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          {/* Value input */}
+                          {!NO_VALUE_OPERATORS.includes(cond.operator) && (
+                            <div>
+                              <label className="text-[10px] font-medium text-muted-foreground">Compare Value</label>
+                              <Input
+                                value={cond.value}
+                                onChange={(e) => updateCondition(cond.id, { value: e.target.value })}
+                                className="mt-1 h-8 text-xs bg-card border-border"
+                                placeholder="Enter value to compare…"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Remove button */}
+                        <div className="px-3 py-1.5 border-t border-border bg-muted/30">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] text-destructive/60 hover:text-destructive w-full"
+                            onClick={() => removeCondition(cond.id)}
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" /> Remove Rule
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
 
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full h-7 text-xs gap-1"
+                  className="w-full h-8 text-xs gap-1.5 border-dashed"
                   onClick={addCondition}
                 >
-                  <Plus className="w-3 h-3" /> Add Condition
+                  <Plus className="w-3 h-3" /> Add Visibility Rule
                 </Button>
 
                 {/* Legacy raw rule input */}
                 <Collapsible>
                   <CollapsibleTrigger className="text-[10px] text-muted-foreground/60 hover:text-muted-foreground flex items-center gap-1 cursor-pointer">
-                    Advanced: Raw Expression
+                    <ChevronRight className="w-3 h-3" /> Advanced: Raw Expression
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <Input
@@ -428,23 +525,47 @@ const PropertiesPanel = ({ nodeId, data, onUpdate, onClose, onDelete, onAutoAdd,
             <CollapsibleSection
               title="Appearance"
               icon="🎨"
+              badge={colorTag ? colorTag : undefined}
+              badgeVariant={colorTag ? 'active' : undefined}
               open={sectionsOpen.appearance}
               onToggle={() => toggleSection('appearance')}
             >
               <div className="space-y-3">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Color Tag</Label>
-                  <Select value={colorTag} onValueChange={(v) => onUpdate(nodeId, { properties: { ...data.properties, colorTag: v } })}>
-                    <SelectTrigger className="mt-1 h-8 text-xs bg-card">
-                      <SelectValue placeholder="Default" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {NODE_COLOR_PRESETS.map((c) => (
-                        <SelectItem key={c.value || 'default'} value={c.value || 'none'}>{c.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1.5 mb-2">
+                    <Paintbrush className="w-3 h-3" /> Color Tag
+                  </Label>
+                  <p className="text-[10px] text-muted-foreground mb-2">
+                    Assign a color to visually categorize this node in the editor.
+                  </p>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {NODE_COLOR_PRESETS.map((c) => {
+                      const isSelected = colorTag === c.value || (!colorTag && !c.value);
+                      return (
+                        <button
+                          key={c.value || 'default'}
+                          onClick={() => onUpdate(nodeId, { properties: { ...data.properties, colorTag: c.value } })}
+                          className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all text-[10px] ${
+                            isSelected 
+                              ? 'border-primary bg-primary/5 ring-1 ring-primary/30' 
+                              : 'border-border bg-card hover:border-muted-foreground/30'
+                          }`}
+                        >
+                          <div className={`w-5 h-5 rounded-full ${c.color} ${!c.value ? 'border border-border' : ''}`} />
+                          <span className={isSelected ? 'font-semibold text-foreground' : 'text-muted-foreground'}>{c.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* Preview */}
+                {colorTag && (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50 border border-border text-[10px] text-muted-foreground">
+                    <Info className="w-3 h-3 shrink-0" />
+                    <span>Color tag "<strong className="text-foreground">{colorTag}</strong>" will appear as a dot indicator on the node header.</span>
+                  </div>
+                )}
               </div>
             </CollapsibleSection>
 
@@ -467,7 +588,7 @@ const PropertiesPanel = ({ nodeId, data, onUpdate, onClose, onDelete, onAutoAdd,
 
             {/* ── DEPENDENCY SUGGESTIONS ── */}
             <CollapsibleSection
-              title="Dependency Suggestions"
+              title="Dependencies"
               icon="🔗"
               open={sectionsOpen.deps}
               onToggle={() => toggleSection('deps')}
@@ -495,7 +616,7 @@ const PropertiesPanel = ({ nodeId, data, onUpdate, onClose, onDelete, onAutoAdd,
               </div>
               <div className="flex justify-between">
                 <span>Connections</span>
-                <span className="text-foreground">{edges.filter((e) => e.source === nodeId || e.target === nodeId).length}</span>
+                <span className="text-foreground">{incomingEdges.length + outgoingEdges.length}</span>
               </div>
             </div>
 
@@ -521,6 +642,7 @@ const CollapsibleSection = ({
   title,
   icon,
   badge,
+  badgeVariant,
   open,
   onToggle,
   children,
@@ -528,6 +650,7 @@ const CollapsibleSection = ({
   title: string;
   icon: string;
   badge?: string;
+  badgeVariant?: 'active' | undefined;
   open: boolean;
   onToggle: () => void;
   children: React.ReactNode;
@@ -538,7 +661,12 @@ const CollapsibleSection = ({
       <span className="text-sm">{icon}</span>
       <span className="text-xs font-medium text-foreground flex-1 text-left">{title}</span>
       {badge && (
-        <Badge variant="secondary" className="text-[9px] h-4 px-1.5">{badge}</Badge>
+        <Badge 
+          variant={badgeVariant === 'active' ? 'default' : 'secondary'} 
+          className={`text-[9px] h-4 px-1.5 ${badgeVariant === 'active' ? 'bg-primary/15 text-primary border-primary/30' : ''}`}
+        >
+          {badge}
+        </Badge>
       )}
     </CollapsibleTrigger>
     <CollapsibleContent className="pl-7 pr-1 pb-3 pt-1 space-y-2">
