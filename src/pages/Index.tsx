@@ -129,6 +129,15 @@ const EditorCanvas = () => {
         onLoadSample={loadSampleData}
         nodeCount={nodes.length}
         edgeCount={edges.length}
+        onCloudSave={() => {
+          const config = exportConfig('json');
+          return { nodes: nodes.map(n => ({ ...n })), edges: edges.map(e => ({ ...e })), exportedConfig: config };
+        }}
+        onCloudLoad={(data: Record<string, unknown>) => {
+          if (data && typeof data === 'object') {
+            importConfig();
+          }
+        }}
       />
 
       <div className="flex-1 relative">

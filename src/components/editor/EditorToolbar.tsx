@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useReactFlow } from '@xyflow/react';
 import ExportDialog from './ExportDialog';
+import CloudToolbar from './CloudToolbar';
 
 interface EditorToolbarProps {
   onExport: (format: 'json' | 'xml' | 'html' | 'opt') => void;
@@ -10,9 +11,11 @@ interface EditorToolbarProps {
   onLoadSample: () => void;
   nodeCount: number;
   edgeCount: number;
+  onCloudSave: (configData: Record<string, unknown>) => Record<string, unknown>;
+  onCloudLoad: (configData: Record<string, unknown>) => void;
 }
 
-const EditorToolbar = ({ onExport, onImport, onLoadSample, nodeCount, edgeCount }: EditorToolbarProps) => {
+const EditorToolbar = ({ onExport, onImport, onLoadSample, nodeCount, edgeCount, onCloudSave, onCloudLoad }: EditorToolbarProps) => {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   return (
@@ -53,9 +56,13 @@ const EditorToolbar = ({ onExport, onImport, onLoadSample, nodeCount, edgeCount 
         </Button>
       </div>
 
-      <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
-        <span>{nodeCount} nodes</span>
-        <span>{edgeCount} edges</span>
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-mono mr-2">
+          <span>{nodeCount} nodes</span>
+          <span>{edgeCount} edges</span>
+        </div>
+        <Separator orientation="vertical" className="h-5" />
+        <CloudToolbar onSave={onCloudSave} onLoad={onCloudLoad} />
       </div>
     </div>
   );
