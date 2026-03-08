@@ -1,5 +1,5 @@
-import { memo, useMemo } from 'react';
-import { Handle, Position, type NodeProps, useEdges, useNodes } from '@xyflow/react';
+import { memo, useMemo, useCallback } from 'react';
+import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import { Box, Puzzle, Layers, ToggleLeft, GripVertical, AlertCircle, AlertTriangle, CheckCircle2, X, Power } from 'lucide-react';
 import type { ConfigNodeData, ConfigNodeType } from '@/types/configTypes';
 import { analyzeNode } from '@/engine/ruleEngine';
@@ -29,6 +29,7 @@ const iconColorMap: Record<ConfigNodeType, string> = {
 const ConfigNode = ({ id, data, selected }: NodeProps) => {
   const nodeData = data as unknown as ConfigNodeData;
   const Icon = iconMap[nodeData.type];
+  const { setNodes, setEdges } = useReactFlow();
 
   const nodes = useNodes();
   const edges = useEdges();
@@ -43,27 +44,43 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
   const isIncluded = nodeData.properties?.included === true;
   const isExcluded = nodeData.properties?.included === false;
 
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setNodes((nds) => nds.filter((n) => n.id !== id));
+    setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+  }, [id, setNodes, setEdges]);
+
   return (
     <div
       className={`
-        relative bg-card border-2 rounded-lg min-w-[200px] transition-all duration-200
+        relative bg-card border-2 rounded-lg min-w-[200px] transition-all duration-200 group
         ${colorClassMap[nodeData.type]}
         ${selected ? 'ring-2 ring-primary/50 scale-[1.02]' : ''}
         ${!nodeData.visible ? 'opacity-40' : ''}
         ${isExcluded ? 'opacity-50 border-dashed' : ''}
       `}
     >
-      {/* Top target handle - all nodes can receive connections */}
+      {/* Top target handle */}
       <Handle
         type="target"
         position={Position.Top}
-        className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-card hover:!bg-primary transition-colors"
+        className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-card hover:!bg-primary hover:!w-4 hover:!h-4 transition-all"
       />
+
+      {/* Delete button - top right corner, visible on hover */}
+      <button
+        onClick={handleDelete}
+        className="absolute -top-2.5 -right-2.5 z-20 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 shadow-md"
+        title="Delete node"
+      >
+        <X className="w-3 h-3" />
+      </button>
 
       {/* Top-left: Include/Exclude badge for ALL node types */}
       <div className="absolute -top-2 -left-2 z-10">
         {isIncluded && (
-          <span className="flex items-center gap-0.5 bg-node-module text-background text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+          <span className="flex items-center gap-0.5 bg-node-module text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full">
             <Power className="w-2.5 h-2.5" /> ON
           </span>
         )}
@@ -74,9 +91,9 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
         )}
       </div>
 
-      {/* Top-right: Health badges */}
+      {/* Health badges */}
       {(errorCount > 0 || warningCount > 0) && (
-        <div className="absolute -top-2 -right-2 z-10 flex gap-0.5">
+        <div className="absolute -top-2 right-5 z-10 flex gap-0.5">
           {errorCount > 0 && (
             <span className="flex items-center gap-0.5 bg-destructive text-destructive-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
               <AlertCircle className="w-2.5 h-2.5" />
@@ -84,7 +101,7 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
             </span>
           )}
           {warningCount > 0 && (
-            <span className="flex items-center gap-0.5 bg-node-group text-background text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+            <span className="flex items-center gap-0.5 bg-node-group text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
               <AlertTriangle className="w-2.5 h-2.5" />
               {warningCount}
             </span>
@@ -92,8 +109,8 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
         </div>
       )}
       {errorCount === 0 && warningCount === 0 && (
-        <div className="absolute -top-2 -right-2 z-10">
-          <span className="flex items-center bg-node-module text-background text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+        <div className="absolute -top-2 right-5 z-10">
+          <span className="flex items-center bg-node-module text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded-full">
             <CheckCircle2 className="w-2.5 h-2.5" />
           </span>
         </div>
@@ -129,11 +146,11 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
         </div>
       )}
 
-      {/* Bottom source handle - all nodes can create connections */}
+      {/* Bottom source handle */}
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-card hover:!bg-primary transition-colors"
+        className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-card hover:!bg-primary hover:!w-4 hover:!h-4 transition-all"
       />
     </div>
   );

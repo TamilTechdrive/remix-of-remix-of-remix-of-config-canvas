@@ -42,7 +42,7 @@ const AppShell = ({ children }: AppShellProps) => {
     <div className="h-screen flex bg-background overflow-hidden">
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 bg-background/80 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Sidebar */}
@@ -53,8 +53,8 @@ const AppShell = ({ children }: AppShellProps) => {
       )}>
         {/* Logo */}
         <div className="h-14 flex items-center px-4 border-b border-sidebar-border gap-2">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary/20 border border-sidebar-primary/30 flex items-center justify-center shrink-0">
-            <Shield className="w-4 h-4 text-sidebar-primary" />
+          <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
+            <Workflow className="w-4 h-4 text-primary" />
           </div>
           {!collapsed && (
             <span className="text-sm font-semibold text-sidebar-foreground font-mono truncate">ConfigFlow</span>
@@ -69,15 +69,15 @@ const AppShell = ({ children }: AppShellProps) => {
         </div>
 
         {isDemoMode && !collapsed && (
-          <div className="mx-3 mt-3 p-2 rounded-md bg-sidebar-primary/10 border border-sidebar-primary/20">
-            <div className="flex items-center gap-1.5 text-[10px] text-sidebar-primary font-medium">
+          <div className="mx-3 mt-3 p-2.5 rounded-lg bg-primary/8 border border-primary/15">
+            <div className="flex items-center gap-1.5 text-[10px] text-primary font-medium">
               <Zap className="w-3 h-3" /> Demo Mode Active
             </div>
           </div>
         )}
 
         {/* Nav */}
-        <nav className="flex-1 py-3 px-2 space-y-1 overflow-y-auto">
+        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
           {navItems.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
@@ -87,8 +87,8 @@ const AppShell = ({ children }: AppShellProps) => {
               className={({ isActive }) => cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+                  ? "bg-primary/10 text-primary font-medium border border-primary/15"
+                  : "text-sidebar-foreground/65 hover:text-sidebar-foreground hover:bg-sidebar-accent/60",
                 collapsed && "justify-center px-0",
               )}
             >
@@ -106,7 +106,7 @@ const AppShell = ({ children }: AppShellProps) => {
                 "flex items-center gap-3 w-full rounded-lg px-2 py-2 hover:bg-sidebar-accent/50 transition-colors",
                 collapsed && "justify-center",
               )}>
-                <div className="w-8 h-8 rounded-full bg-sidebar-primary/20 border border-sidebar-primary/30 flex items-center justify-center shrink-0 text-xs font-bold text-sidebar-primary">
+                <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0 text-xs font-bold text-primary">
                   {user?.displayName?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 {!collapsed && (
@@ -146,7 +146,7 @@ const AppShell = ({ children }: AppShellProps) => {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-3 shrink-0">
+        <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center px-4 gap-3 shrink-0">
           <button onClick={() => setMobileOpen(true)} className="lg:hidden text-muted-foreground">
             <Menu className="w-5 h-5" />
           </button>
