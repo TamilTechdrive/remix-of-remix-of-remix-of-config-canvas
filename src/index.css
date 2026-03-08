@@ -108,7 +108,7 @@
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: hsl(168 55% 48%) !important;
+  stroke: hsl(168 50% 50%) !important;
   stroke-width: 3 !important;
 }
 
