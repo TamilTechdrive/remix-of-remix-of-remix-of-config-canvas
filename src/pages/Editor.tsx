@@ -421,6 +421,7 @@ const EditorCanvas = () => {
           onCopyNodeId={(nodeId) => { navigator.clipboard.writeText(nodeId); toast.success('Node ID copied'); }}
         />
       </div>
+      <ConfirmDialog />
     </div>
   );
 };
