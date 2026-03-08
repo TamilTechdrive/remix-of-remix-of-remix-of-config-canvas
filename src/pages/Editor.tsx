@@ -24,6 +24,7 @@ import { analyzeFullGraph } from '@/engine/ruleEngine';
 import type { RuleIssue } from '@/engine/ruleEngine';
 import { AlertCircle, Sparkles, Save, CheckCircle2, Loader2, Power } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 
 const nodeTypes: NodeTypes = { configNode: ConfigNode };
 const AUTO_SAVE_INTERVAL = 30000;
@@ -38,6 +39,8 @@ const EditorCanvas = () => {
     addUserRule, removeUserRule, updateNodeMeta,
     disconnectAllEdges, disconnectEdge,
   } = useConfigEditor();
+
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const [rightPanel, setRightPanel] = useState<'none' | 'actions' | 'properties'>('none');
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
@@ -97,6 +100,40 @@ const EditorCanvas = () => {
     }
   }, []);
 
+  // Confirmed critical actions
+  const confirmedDeleteNode = useCallback(async (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    const label = node ? (node.data as unknown as ConfigNodeData).label : nodeId;
+    const ok = await confirm({
+      title: 'Delete Node',
+      description: `Are you sure you want to delete "${label}"? This will also remove all its connections.`,
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    });
+    if (ok) deleteNode(nodeId);
+  }, [nodes, confirm, deleteNode]);
+
+  const confirmedDisconnectAll = useCallback(async (nodeId: string) => {
+    const count = edges.filter(e => e.source === nodeId || e.target === nodeId).length;
+    if (count === 0) return;
+    const ok = await confirm({
+      title: 'Disconnect All',
+      description: `Remove all ${count} connection(s) from this node?`,
+      confirmLabel: 'Disconnect All',
+      variant: 'destructive',
+    });
+    if (ok) disconnectAllEdges(nodeId);
+  }, [edges, confirm, disconnectAllEdges]);
+
+  const confirmedAutoResolveAll = useCallback(async (fixes: Array<{ action: string; payload: Record<string, string> }>) => {
+    const ok = await confirm({
+      title: 'Auto-Resolve All Issues',
+      description: `Apply ${fixes.length} automatic fix(es)? This will modify node properties.`,
+      confirmLabel: 'Apply Fixes',
+    });
+    if (ok) autoResolveAll(fixes);
+  }, [confirm, autoResolveAll]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -111,7 +148,7 @@ const EditorCanvas = () => {
       } else if (e.key === 'a' || e.key === 'A') {
         if (selectedNodeId) setRightPanel((prev) => prev === 'actions' ? 'none' : 'actions');
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId && rightPanel === 'none') {
-        deleteNode(selectedNodeId);
+        confirmedDeleteNode(selectedNodeId);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -342,7 +379,7 @@ const EditorCanvas = () => {
                   onClose={() => setRightPanel('none')}
                   onFocusNode={onFocusNode}
                   onFixIssue={onFixIssue}
-                  onAutoResolveAll={autoResolveAll}
+                  onAutoResolveAll={confirmedAutoResolveAll}
                   onToggleIncluded={onToggleIncluded}
                   onAddUserRule={addUserRule}
                   onRemoveUserRule={removeUserRule}
@@ -358,7 +395,7 @@ const EditorCanvas = () => {
                   data={selectedNode.data as unknown as ConfigNodeData}
                   onUpdate={updateNodeData}
                   onClose={() => setRightPanel('none')}
-                  onDelete={deleteNode}
+                  onDelete={confirmedDeleteNode}
                   onAutoAdd={autoAddChild}
                   edges={edges}
                   allNodes={nodes}
@@ -374,16 +411,17 @@ const EditorCanvas = () => {
           nodes={nodes}
           edges={edges}
           onClose={() => setContextMenu({ show: false, x: 0, y: 0, nodeId: null })}
-          onDelete={deleteNode}
+          onDelete={confirmedDeleteNode}
           onToggleIncluded={onToggleIncluded}
           onToggleVisible={onToggleVisible}
           onFocusNode={onFocusNode}
           onShowInsights={(nodeId) => { setSelectedNodeId(nodeId); setRightPanel('actions'); }}
-          onDisconnectAll={disconnectAllEdges}
+          onDisconnectAll={confirmedDisconnectAll}
           onDisconnectEdge={disconnectEdge}
           onCopyNodeId={(nodeId) => { navigator.clipboard.writeText(nodeId); toast.success('Node ID copied'); }}
         />
       </div>
+      <ConfirmDialog />
     </div>
   );
 };
