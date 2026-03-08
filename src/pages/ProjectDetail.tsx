@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Trash2, Pencil, Copy, GitBranch,
   Package, Settings2, Download, ChevronRight, Power,
-  PowerOff, Boxes, Tv, Cpu, ChevronDown,
+  PowerOff, Boxes, Tv, Cpu, ChevronDown, GitCompare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
