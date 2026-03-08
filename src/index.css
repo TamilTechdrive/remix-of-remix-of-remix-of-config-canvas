@@ -54,6 +54,53 @@
     --sidebar-border: 222 14% 24%;
     --sidebar-ring: 210 75% 48%;
   }
+
+  .dark {
+    --background: 222 22% 10%;
+    --foreground: 218 15% 88%;
+
+    --card: 222 20% 14%;
+    --card-foreground: 218 15% 88%;
+
+    --popover: 222 20% 14%;
+    --popover-foreground: 218 15% 88%;
+
+    --primary: 210 75% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 16% 20%;
+    --secondary-foreground: 218 15% 78%;
+
+    --muted: 222 14% 18%;
+    --muted-foreground: 218 10% 55%;
+
+    --accent: 258 55% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 68% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 14% 22%;
+    --input: 222 14% 22%;
+    --ring: 210 75% 52%;
+
+    --node-container: 210 65% 55%;
+    --node-module: 158 55% 45%;
+    --node-group: 36 80% 55%;
+    --node-option: 258 55% 60%;
+
+    --surface-elevated: 222 18% 16%;
+    --surface-overlay: 222 16% 12%;
+
+    --sidebar-background: 222 24% 8%;
+    --sidebar-foreground: 218 15% 78%;
+    --sidebar-primary: 210 75% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 18% 14%;
+    --sidebar-accent-foreground: 218 20% 88%;
+    --sidebar-border: 222 14% 16%;
+    --sidebar-ring: 210 75% 52%;
+  }
 }
 
 @layer base {
@@ -77,51 +124,51 @@
 }
 
 .react-flow__background {
-  background-color: hsl(218 20% 96%) !important;
+  background-color: hsl(var(--background)) !important;
 }
 
 .react-flow__minimap {
-  background-color: hsl(220 16% 98%) !important;
-  border: 1px solid hsl(218 16% 86%) !important;
+  background-color: hsl(var(--surface-elevated)) !important;
+  border: 1px solid hsl(var(--border)) !important;
   border-radius: 0.5rem !important;
 }
 
 .react-flow__controls {
-  background: hsl(220 18% 100%) !important;
-  border: 1px solid hsl(218 16% 86%) !important;
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
   border-radius: 0.5rem !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
 .react-flow__controls button {
-  background: hsl(220 18% 100%) !important;
-  border-color: hsl(218 16% 86%) !important;
-  color: hsl(220 10% 46%) !important;
-  fill: hsl(220 10% 46%) !important;
+  background: hsl(var(--card)) !important;
+  border-color: hsl(var(--border)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  fill: hsl(var(--muted-foreground)) !important;
 }
 
 .react-flow__controls button:hover {
-  background: hsl(218 14% 92%) !important;
-  color: hsl(220 25% 14%) !important;
-  fill: hsl(220 25% 14%) !important;
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+  fill: hsl(var(--foreground)) !important;
 }
 
 .react-flow__edge-path {
-  stroke: hsl(218 16% 76%) !important;
+  stroke: hsl(var(--border)) !important;
   stroke-width: 2 !important;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: hsl(210 75% 48%) !important;
+  stroke: hsl(var(--primary)) !important;
   stroke-width: 3 !important;
 }
 
 .react-flow__edge:hover .react-flow__edge-path {
-  stroke: hsl(210 75% 48% / 0.5) !important;
+  stroke: hsl(var(--primary) / 0.5) !important;
 }
 
 .react-flow__connection-line {
-  stroke: hsl(210 75% 48%) !important;
+  stroke: hsl(var(--primary)) !important;
   stroke-dasharray: 5 5;
 }
 
@@ -143,9 +190,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(218 14% 82%);
+  background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(218 14% 72%);
+  background: hsl(var(--muted-foreground) / 0.5);
 }
