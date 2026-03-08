@@ -148,7 +148,7 @@ const EditorCanvas = () => {
       } else if (e.key === 'a' || e.key === 'A') {
         if (selectedNodeId) setRightPanel((prev) => prev === 'actions' ? 'none' : 'actions');
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeId && rightPanel === 'none') {
-        deleteNode(selectedNodeId);
+        confirmedDeleteNode(selectedNodeId);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
