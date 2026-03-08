@@ -156,17 +156,16 @@ const NodeActionsPanel = ({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {data.type === 'option' && (
-            <Button
-              variant={isIncluded ? 'default' : 'secondary'}
-              size="sm"
-              className="h-7 text-[10px] gap-1"
-              onClick={() => onToggleIncluded(nodeId)}
-            >
-              <ToggleLeft className="w-3 h-3" />
-              {isIncluded ? 'Included' : 'Excluded'}
-            </Button>
-          )}
+          {/* Include/Exclude for ALL node types */}
+          <Button
+            variant={isIncluded ? 'default' : 'secondary'}
+            size="sm"
+            className="h-7 text-[10px] gap-1"
+            onClick={() => onToggleIncluded(nodeId)}
+          >
+            <ToggleLeft className="w-3 h-3" />
+            {isIncluded ? 'Included' : 'Excluded'}
+          </Button>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7">
             <X className="w-4 h-4" />
           </Button>

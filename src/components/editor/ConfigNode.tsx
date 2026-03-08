@@ -1,8 +1,7 @@
 import { memo, useMemo } from 'react';
 import { Handle, Position, type NodeProps, useEdges, useNodes } from '@xyflow/react';
-import { Box, Puzzle, Layers, ToggleLeft, GripVertical, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Box, Puzzle, Layers, ToggleLeft, GripVertical, AlertCircle, AlertTriangle, CheckCircle2, X, Power } from 'lucide-react';
 import type { ConfigNodeData, ConfigNodeType } from '@/types/configTypes';
-import { NODE_CHILDREN } from '@/types/configTypes';
 import { analyzeNode } from '@/engine/ruleEngine';
 import { SAMPLE_CONFIG } from '@/data/sampleConfig';
 
@@ -30,8 +29,6 @@ const iconColorMap: Record<ConfigNodeType, string> = {
 const ConfigNode = ({ id, data, selected }: NodeProps) => {
   const nodeData = data as unknown as ConfigNodeData;
   const Icon = iconMap[nodeData.type];
-  const canHaveChildren = true; // All nodes need source handle for rule/conflict edges
-  const hasParent = nodeData.type !== 'container';
 
   const nodes = useNodes();
   const edges = useEdges();
@@ -43,6 +40,8 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
 
   const errorCount = analysis.issues.filter((i) => i.severity === 'error').length;
   const warningCount = analysis.issues.filter((i) => i.severity === 'warning').length;
+  const isIncluded = nodeData.properties?.included === true;
+  const isExcluded = nodeData.properties?.included === false;
 
   return (
     <div
@@ -51,17 +50,31 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
         ${colorClassMap[nodeData.type]}
         ${selected ? 'ring-2 ring-primary/50 scale-[1.02]' : ''}
         ${!nodeData.visible ? 'opacity-40' : ''}
+        ${isExcluded ? 'opacity-50 border-dashed' : ''}
       `}
     >
-      {hasParent && (
-        <Handle
-          type="target"
-          position={Position.Top}
-          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-card hover:!bg-primary transition-colors"
-        />
-      )}
+      {/* Top target handle - all nodes can receive connections */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-card hover:!bg-primary transition-colors"
+      />
 
-      {/* Health badge */}
+      {/* Top-left: Include/Exclude badge for ALL node types */}
+      <div className="absolute -top-2 -left-2 z-10">
+        {isIncluded && (
+          <span className="flex items-center gap-0.5 bg-node-module text-background text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+            <Power className="w-2.5 h-2.5" /> ON
+          </span>
+        )}
+        {isExcluded && (
+          <span className="flex items-center gap-0.5 bg-muted text-muted-foreground text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+            OFF
+          </span>
+        )}
+      </div>
+
+      {/* Top-right: Health badges */}
       {(errorCount > 0 || warningCount > 0) && (
         <div className="absolute -top-2 -right-2 z-10 flex gap-0.5">
           {errorCount > 0 && (
@@ -78,7 +91,7 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
           )}
         </div>
       )}
-      {errorCount === 0 && warningCount === 0 && nodeData.type === 'option' && (
+      {errorCount === 0 && warningCount === 0 && (
         <div className="absolute -top-2 -right-2 z-10">
           <span className="flex items-center bg-node-module text-background text-[9px] font-bold px-1.5 py-0.5 rounded-full">
             <CheckCircle2 className="w-2.5 h-2.5" />
@@ -105,7 +118,7 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
 
       {Object.keys(nodeData.properties).length > 0 && (
         <div className="px-3 pb-2 flex flex-wrap gap-1">
-          {Object.entries(nodeData.properties).slice(0, 3).map(([key]) => (
+          {Object.entries(nodeData.properties).filter(([k]) => !['included', 'visibilityConditions', 'notes', 'colorTag', 'userRules', 'impact_level', 'priority', 'tags', 'must_enable', 'must_disable'].includes(k)).slice(0, 3).map(([key]) => (
             <span
               key={key}
               className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground font-mono"
@@ -113,21 +126,15 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
               {key}
             </span>
           ))}
-          {Object.keys(nodeData.properties).length > 3 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
-              +{Object.keys(nodeData.properties).length - 3}
-            </span>
-          )}
         </div>
       )}
 
-      {canHaveChildren && (
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-card hover:!bg-primary transition-colors"
-        />
-      )}
+      {/* Bottom source handle - all nodes can create connections */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!w-3 !h-3 !bg-muted-foreground/50 !border-2 !border-card hover:!bg-primary transition-colors"
+      />
     </div>
   );
 };
