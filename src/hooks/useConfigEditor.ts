@@ -427,6 +427,81 @@ th{color:#4dd68e;font-size:.8rem;text-transform:uppercase}
     setSelectedNodeId(null);
   }, []);
 
+
+  // ── Visibility condition evaluation engine ──────────────────
+  useEffect(() => {
+    let changed = false;
+    const updatedNodes = nodes.map((node) => {
+      const data = node.data as unknown as ConfigNodeData;
+      const conditions = data.properties?.visibilityConditions as unknown as Array<{
+        sourceNodeId: string;
+        field: string;
+        operator: string;
+        value: string;
+        logic: 'and' | 'or';
+      }> | undefined;
+
+      if (!conditions || conditions.length === 0) return node;
+
+      // Evaluate each condition
+      const results = conditions.map((cond) => {
+        if (!cond.sourceNodeId) return true; // incomplete condition = pass
+        const sourceNode = nodes.find((n) => n.id === cond.sourceNodeId);
+        if (!sourceNode) return true;
+        const sourceData = sourceNode.data as unknown as ConfigNodeData;
+
+        // Get the field value from the source node
+        let fieldValue: unknown;
+        switch (cond.field) {
+          case 'visible': fieldValue = sourceData.visible; break;
+          case 'included': fieldValue = sourceData.properties?.included; break;
+          case 'label': fieldValue = sourceData.label; break;
+          case 'enabled': fieldValue = sourceData.properties?.enabled; break;
+          case 'value': fieldValue = sourceData.properties?.value; break;
+          default: fieldValue = sourceData.properties?.[cond.field]; break;
+        }
+
+        // Evaluate operator
+        switch (cond.operator) {
+          case 'equals': return String(fieldValue) === cond.value;
+          case 'not_equals': return String(fieldValue) !== cond.value;
+          case 'contains': return String(fieldValue ?? '').includes(cond.value);
+          case 'gt': return Number(fieldValue) > Number(cond.value);
+          case 'lt': return Number(fieldValue) < Number(cond.value);
+          case 'is_true': return fieldValue === true || fieldValue === 'true';
+          case 'is_false': return fieldValue === false || fieldValue === 'false' || !fieldValue;
+          case 'is_empty': return !fieldValue || String(fieldValue).trim() === '';
+          case 'is_not_empty': return !!fieldValue && String(fieldValue).trim() !== '';
+          default: return true;
+        }
+      });
+
+      // Combine results using logic operators
+      let finalResult = results[0] ?? true;
+      for (let i = 1; i < results.length; i++) {
+        const logic = conditions[i]?.logic || 'and';
+        if (logic === 'and') {
+          finalResult = finalResult && results[i];
+        } else {
+          finalResult = finalResult || results[i];
+        }
+      }
+
+      if (data.visible !== finalResult) {
+        changed = true;
+        return {
+          ...node,
+          data: { ...node.data, visible: finalResult },
+        };
+      }
+      return node;
+    });
+
+    if (changed) {
+      setNodes(updatedNodes);
+    }
+  }, [nodes]);
+
   return {
     nodes,
     edges,
