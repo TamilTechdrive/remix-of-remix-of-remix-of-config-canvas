@@ -55,6 +55,16 @@ const EditorToolbar = ({ onExport, onImport, onLoadSample, onCompare, nodeCount,
           <Database className="w-3.5 h-3.5" />
           Load Sample
         </Button>
+
+        {onCompare && (
+          <>
+            <Separator orientation="vertical" className="h-5 mx-1" />
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={onCompare}>
+              <GitCompare className="w-3.5 h-3.5" />
+              Import & Compare
+            </Button>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
