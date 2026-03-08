@@ -510,6 +510,14 @@ const EditorCanvas = ({ initialNodes, initialEdges, onSave }: EditorCanvasProps)
         />
       </div>
       <ConfirmDialog />
+      <ImportCompareDialog
+        open={compareOpen}
+        onOpenChange={setCompareOpen}
+        currentNodes={nodes}
+        currentEdges={edges}
+        onApply={(newNodes, newEdges) => replaceAll(newNodes, newEdges)}
+        mode="module"
+      />
     </div>
   );
 };
