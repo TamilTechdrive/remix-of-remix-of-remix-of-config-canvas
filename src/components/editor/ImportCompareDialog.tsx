@@ -355,8 +355,8 @@ const ImportCompareDialog = ({
               </TabsContent>
 
               {/* Side by Side */}
-              <TabsContent value="sidebyside" className="flex-1 min-h-0">
-                <ScrollArea className="h-[300px]">
+              <TabsContent value="sidebyside" className="flex-1 min-h-0 overflow-hidden">
+                <ScrollArea className="h-full max-h-[40vh]">
                   {diffItems.length === 0 ? (
                     <div className="text-center py-10">
                       <CheckCircle2 className="w-8 h-8 text-node-module mx-auto mb-2" />
