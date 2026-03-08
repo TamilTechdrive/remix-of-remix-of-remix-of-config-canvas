@@ -24,13 +24,25 @@ const createNodeData = (type: ConfigNodeType): ConfigNodeData => ({
   visible: true,
 });
 
-const initialData = parseConfigToFlow(SAMPLE_CONFIG);
+const defaultInitialData = parseConfigToFlow(SAMPLE_CONFIG);
 
-export const useConfigEditor = () => {
-  const [nodes, setNodes] = useState<Node[]>(initialData.nodes);
-  const [edges, setEdges] = useState<Edge[]>(initialData.edges);
+interface UseConfigEditorOptions {
+  initialNodes?: Node[];
+  initialEdges?: Edge[];
+}
+
+export const useConfigEditor = (options?: UseConfigEditorOptions) => {
+  const hasCustomData = options?.initialNodes !== undefined;
+  const [nodes, setNodes] = useState<Node[]>(hasCustomData ? options.initialNodes! : defaultInitialData.nodes);
+  const [edges, setEdges] = useState<Edge[]>(hasCustomData ? (options.initialEdges || []) : defaultInitialData.edges);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const idCounter = useRef(initialData.maxId);
+  const maxIdFromNodes = hasCustomData
+    ? (options.initialNodes || []).reduce((max, n) => {
+        const num = parseInt(n.id.replace('node_', ''), 10);
+        return isNaN(num) ? max : Math.max(max, num);
+      }, 0) + 1
+    : defaultInitialData.maxId;
+  const idCounter = useRef(maxIdFromNodes);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),

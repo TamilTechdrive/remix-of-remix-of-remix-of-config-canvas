@@ -29,7 +29,13 @@ import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 const nodeTypes: NodeTypes = { configNode: ConfigNode };
 const AUTO_SAVE_INTERVAL = 30000;
 
-const EditorCanvas = () => {
+interface EditorCanvasProps {
+  initialNodes?: import('@xyflow/react').Node[];
+  initialEdges?: import('@xyflow/react').Edge[];
+  onSave?: (nodes: import('@xyflow/react').Node[], edges: import('@xyflow/react').Edge[]) => void;
+}
+
+const EditorCanvas = ({ initialNodes, initialEdges, onSave }: EditorCanvasProps) => {
   const {
     nodes, edges, selectedNodeId, selectedNode,
     onNodesChange, onEdgesChange, onConnect,
@@ -38,7 +44,7 @@ const EditorCanvas = () => {
     exportConfig, importConfig, loadSampleData, autoResolveAll,
     addUserRule, removeUserRule, updateNodeMeta,
     disconnectAllEdges, disconnectEdge,
-  } = useConfigEditor();
+  } = useConfigEditor(initialNodes !== undefined ? { initialNodes, initialEdges } : undefined);
 
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
