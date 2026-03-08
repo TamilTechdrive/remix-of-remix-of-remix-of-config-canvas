@@ -82,6 +82,15 @@ const AppContent = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+      </>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <TooltipProvider>
+        <AppContent />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
