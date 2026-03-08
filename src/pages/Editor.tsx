@@ -411,7 +411,7 @@ const EditorCanvas = () => {
           nodes={nodes}
           edges={edges}
           onClose={() => setContextMenu({ show: false, x: 0, y: 0, nodeId: null })}
-          onDelete={deleteNode}
+          onDelete={confirmedDeleteNode}
           onToggleIncluded={onToggleIncluded}
           onToggleVisible={onToggleVisible}
           onFocusNode={onFocusNode}
