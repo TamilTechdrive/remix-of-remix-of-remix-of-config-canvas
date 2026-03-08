@@ -290,6 +290,52 @@ const Projects = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
+              <Label>Start from Template</Label>
+              <Popover open={sampleOpen} onOpenChange={setSampleOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full mt-1 justify-between text-sm font-normal">
+                    {selectedSample ? (
+                      <span className="flex items-center gap-2">
+                        <FileText className="w-3.5 h-3.5 text-primary" />
+                        {selectedSample.name}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Select a sample project...</span>
+                    )}
+                    <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search templates..." />
+                    <CommandList>
+                      <CommandEmpty>No templates found.</CommandEmpty>
+                      {Array.from(sampleCategories.entries()).map(([category, samples]) => (
+                        <CommandGroup key={category} heading={category}>
+                          {samples.map(sample => (
+                            <CommandItem
+                              key={sample.id}
+                              value={`${sample.name} ${sample.category} ${sample.tags.join(' ')}`}
+                              onSelect={() => applySample(sample)}
+                              className="flex flex-col items-start gap-0.5 py-2"
+                            >
+                              <span className="text-sm font-medium">{sample.name}</span>
+                              <span className="text-xs text-muted-foreground line-clamp-1">{sample.description}</span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      ))}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedSample && (
+                <Button variant="ghost" size="sm" onClick={clearSample} className="mt-1 text-xs h-6 text-muted-foreground">
+                  Clear template
+                </Button>
+              )}
+            </div>
+            <div>
               <Label>Project Name</Label>
               <Input value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. STB Platform 2026" className="mt-1" />
             </div>
