@@ -6,53 +6,53 @@
 
 @layer base {
   :root {
-    --background: 220 16% 22%;
-    --foreground: 215 20% 93%;
+    --background: 218 20% 96%;
+    --foreground: 220 25% 14%;
 
-    --card: 220 14% 26%;
-    --card-foreground: 215 20% 93%;
+    --card: 220 18% 100%;
+    --card-foreground: 220 25% 14%;
 
-    --popover: 220 14% 28%;
-    --popover-foreground: 215 20% 93%;
+    --popover: 220 18% 100%;
+    --popover-foreground: 220 25% 14%;
 
-    --primary: 168 50% 50%;
-    --primary-foreground: 220 20% 10%;
+    --primary: 210 75% 48%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 12% 32%;
-    --secondary-foreground: 215 15% 80%;
+    --secondary: 218 14% 90%;
+    --secondary-foreground: 220 18% 30%;
 
-    --muted: 220 12% 30%;
-    --muted-foreground: 215 12% 58%;
+    --muted: 218 14% 92%;
+    --muted-foreground: 220 10% 46%;
 
-    --accent: 250 40% 62%;
-    --accent-foreground: 250 20% 95%;
+    --accent: 258 55% 56%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 4 58% 58%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 68% 56%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 12% 34%;
-    --input: 220 12% 34%;
-    --ring: 168 50% 50%;
+    --border: 218 16% 86%;
+    --input: 218 16% 86%;
+    --ring: 210 75% 48%;
 
-    --radius: 0.625rem;
+    --radius: 0.5rem;
 
     /* Custom tokens */
-    --node-container: 200 50% 55%;
-    --node-module: 168 50% 50%;
-    --node-group: 38 70% 58%;
-    --node-option: 250 40% 62%;
+    --node-container: 210 65% 52%;
+    --node-module: 158 55% 42%;
+    --node-group: 36 80% 52%;
+    --node-option: 258 55% 56%;
 
-    --surface-elevated: 220 14% 28%;
-    --surface-overlay: 220 14% 25%;
+    --surface-elevated: 220 16% 98%;
+    --surface-overlay: 218 16% 94%;
 
-    --sidebar-background: 220 18% 18%;
-    --sidebar-foreground: 215 15% 80%;
-    --sidebar-primary: 168 50% 50%;
-    --sidebar-primary-foreground: 220 20% 10%;
-    --sidebar-accent: 220 14% 26%;
-    --sidebar-accent-foreground: 215 20% 93%;
-    --sidebar-border: 220 12% 28%;
-    --sidebar-ring: 168 50% 50%;
+    --sidebar-background: 222 22% 16%;
+    --sidebar-foreground: 218 15% 82%;
+    --sidebar-primary: 210 75% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 18% 22%;
+    --sidebar-accent-foreground: 218 20% 92%;
+    --sidebar-border: 222 14% 24%;
+    --sidebar-ring: 210 75% 48%;
   }
 }
 
@@ -73,51 +73,51 @@
 
 /* React Flow overrides */
 .react-flow__background {
-  background-color: hsl(220 16% 22%) !important;
+  background-color: hsl(218 20% 96%) !important;
 }
 
 .react-flow__minimap {
-  background-color: hsl(220 18% 18%) !important;
-  border: 1px solid hsl(220 12% 34%) !important;
-  border-radius: 0.625rem !important;
+  background-color: hsl(220 16% 98%) !important;
+  border: 1px solid hsl(218 16% 86%) !important;
+  border-radius: 0.5rem !important;
 }
 
 .react-flow__controls {
-  background: hsl(220 14% 26%) !important;
-  border: 1px solid hsl(220 12% 34%) !important;
-  border-radius: 0.625rem !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+  background: hsl(220 18% 100%) !important;
+  border: 1px solid hsl(218 16% 86%) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
 .react-flow__controls button {
-  background: hsl(220 14% 26%) !important;
-  border-color: hsl(220 12% 34%) !important;
-  color: hsl(215 12% 65%) !important;
-  fill: hsl(215 12% 65%) !important;
+  background: hsl(220 18% 100%) !important;
+  border-color: hsl(218 16% 86%) !important;
+  color: hsl(220 10% 46%) !important;
+  fill: hsl(220 10% 46%) !important;
 }
 
 .react-flow__controls button:hover {
-  background: hsl(220 12% 32%) !important;
-  color: hsl(215 20% 93%) !important;
-  fill: hsl(215 20% 93%) !important;
+  background: hsl(218 14% 92%) !important;
+  color: hsl(220 25% 14%) !important;
+  fill: hsl(220 25% 14%) !important;
 }
 
 .react-flow__edge-path {
-  stroke: hsl(220 12% 40%) !important;
+  stroke: hsl(218 16% 76%) !important;
   stroke-width: 2 !important;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: hsl(168 50% 50%) !important;
+  stroke: hsl(210 75% 48%) !important;
   stroke-width: 3 !important;
 }
 
 .react-flow__edge:hover .react-flow__edge-path {
-  stroke: hsl(168 50% 50% / 0.6) !important;
+  stroke: hsl(210 75% 48% / 0.5) !important;
 }
 
 .react-flow__connection-line {
-  stroke: hsl(168 50% 50%) !important;
+  stroke: hsl(210 75% 48%) !important;
   stroke-dasharray: 5 5;
 }
 
@@ -139,9 +139,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(220 12% 36%);
+  background: hsl(218 14% 82%);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(220 12% 42%);
+  background: hsl(218 14% 72%);
 }

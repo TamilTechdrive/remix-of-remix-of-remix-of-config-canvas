@@ -22,7 +22,7 @@ import type { ConfigNodeData, ConfigNodeType } from '@/types/configTypes';
 import { SAMPLE_CONFIG } from '@/data/sampleConfig';
 import { analyzeFullGraph } from '@/engine/ruleEngine';
 import type { RuleIssue } from '@/engine/ruleEngine';
-import { AlertCircle, Sparkles, Save, CheckCircle2, Loader2 } from 'lucide-react';
+import { AlertCircle, Sparkles, Save, CheckCircle2, Loader2, Power } from 'lucide-react';
 import { toast } from 'sonner';
 
 const nodeTypes: NodeTypes = { configNode: ConfigNode };
@@ -41,14 +41,37 @@ const EditorCanvas = () => {
 
   const [showInsights, setShowInsights] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ show: false, x: 0, y: 0, nodeId: null });
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
+    const stored = localStorage.getItem('configflow_autosave_enabled');
+    return stored !== null ? stored === 'true' : true;
+  });
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'off'>('idle');
   const { screenToFlowPosition, setCenter } = useReactFlow();
 
   // Auto-save to localStorage
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const lastSaveRef = useRef<string>('');
 
+  const toggleAutoSave = useCallback(() => {
+    setAutoSaveEnabled(prev => {
+      const next = !prev;
+      localStorage.setItem('configflow_autosave_enabled', String(next));
+      if (!next) {
+        setAutoSaveStatus('off');
+        toast.info('Auto-save disabled');
+      } else {
+        setAutoSaveStatus('idle');
+        toast.success('Auto-save enabled');
+      }
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
+    if (!autoSaveEnabled) {
+      clearInterval(saveTimerRef.current);
+      return;
+    }
     saveTimerRef.current = setInterval(() => {
       const data = JSON.stringify({ nodes, edges });
       if (data !== lastSaveRef.current) {
@@ -65,7 +88,7 @@ const EditorCanvas = () => {
       }
     }, AUTO_SAVE_INTERVAL);
     return () => clearInterval(saveTimerRef.current);
-  }, [nodes, edges]);
+  }, [nodes, edges, autoSaveEnabled]);
 
   // Load autosave on mount
   useEffect(() => {
@@ -184,18 +207,25 @@ const EditorCanvas = () => {
           <span className="text-muted-foreground">{graphAnalysis.totalConflicts} conflicts</span>
         </div>
         <span className="text-muted-foreground ml-auto">{nodes.length} nodes · {edges.length} edges</span>
-        {/* Auto-save indicator */}
-        <div className="flex items-center gap-1.5 ml-2">
-          {autoSaveStatus === 'saving' && (
+        {/* Auto-save indicator with toggle */}
+        <button
+          onClick={toggleAutoSave}
+          className="flex items-center gap-1.5 ml-2 px-2 py-0.5 rounded hover:bg-secondary transition-colors"
+          title={autoSaveEnabled ? 'Click to disable auto-save' : 'Click to enable auto-save'}
+        >
+          {!autoSaveEnabled && (
+            <><Power className="w-3 h-3 text-muted-foreground/40" /><span className="text-muted-foreground/40 line-through">Auto-save</span></>
+          )}
+          {autoSaveEnabled && autoSaveStatus === 'saving' && (
             <><Loader2 className="w-3 h-3 text-primary animate-spin" /><span className="text-primary">Saving...</span></>
           )}
-          {autoSaveStatus === 'saved' && (
+          {autoSaveEnabled && autoSaveStatus === 'saved' && (
             <><CheckCircle2 className="w-3 h-3 text-node-module" /><span className="text-node-module">Saved</span></>
           )}
-          {autoSaveStatus === 'idle' && (
-            <><Save className="w-3 h-3 text-muted-foreground/50" /><span className="text-muted-foreground/50">Auto-save</span></>
+          {autoSaveEnabled && (autoSaveStatus === 'idle' || autoSaveStatus === 'off') && (
+            <><Save className="w-3 h-3 text-primary/60" /><span className="text-primary/60">Auto-save</span></>
           )}
-        </div>
+        </button>
       </div>
 
       <EditorToolbar
@@ -237,7 +267,7 @@ const EditorCanvas = () => {
           proOptions={{ hideAttribution: true }}
           edgesReconnectable
         >
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="hsl(222 14% 22%)" />
+          <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="hsl(218 16% 82%)" />
           <Controls />
           <MiniMap
             nodeColor={(node) => {
@@ -250,7 +280,7 @@ const EditorCanvas = () => {
               };
               return colors[data.type] || '#666';
             }}
-            maskColor="hsla(222, 20%, 14%, 0.8)"
+            maskColor="hsla(218, 20%, 96%, 0.85)"
           />
         </ReactFlow>
 
