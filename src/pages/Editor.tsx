@@ -100,6 +100,40 @@ const EditorCanvas = () => {
     }
   }, []);
 
+  // Confirmed critical actions
+  const confirmedDeleteNode = useCallback(async (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    const label = node ? (node.data as unknown as ConfigNodeData).label : nodeId;
+    const ok = await confirm({
+      title: 'Delete Node',
+      description: `Are you sure you want to delete "${label}"? This will also remove all its connections.`,
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+    });
+    if (ok) deleteNode(nodeId);
+  }, [nodes, confirm, deleteNode]);
+
+  const confirmedDisconnectAll = useCallback(async (nodeId: string) => {
+    const count = edges.filter(e => e.source === nodeId || e.target === nodeId).length;
+    if (count === 0) return;
+    const ok = await confirm({
+      title: 'Disconnect All',
+      description: `Remove all ${count} connection(s) from this node?`,
+      confirmLabel: 'Disconnect All',
+      variant: 'destructive',
+    });
+    if (ok) disconnectAllEdges(nodeId);
+  }, [edges, confirm, disconnectAllEdges]);
+
+  const confirmedAutoResolveAll = useCallback(async (fixes: Array<{ action: string; payload: Record<string, string> }>) => {
+    const ok = await confirm({
+      title: 'Auto-Resolve All Issues',
+      description: `Apply ${fixes.length} automatic fix(es)? This will modify node properties.`,
+      confirmLabel: 'Apply Fixes',
+    });
+    if (ok) autoResolveAll(fixes);
+  }, [confirm, autoResolveAll]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
