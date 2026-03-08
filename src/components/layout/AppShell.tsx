@@ -156,6 +156,41 @@ const AppShell = ({ children }: AppShellProps) => {
             <Bell className="w-4 h-4" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-accent/50 transition-colors">
+                <div className="w-8 h-8 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0 text-xs font-bold text-primary">
+                  {user?.displayName?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div className="hidden sm:block text-left min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate max-w-[120px]">{user?.displayName}</p>
+                  <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{user?.email}</p>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <p className="text-sm font-medium">{user?.displayName}</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
+                <div className="flex gap-1 mt-1">
+                  {user?.roles.map(r => (
+                    <Badge key={r} variant="secondary" className="text-[9px] h-4">{r}</Badge>
+                  ))}
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+                <User className="w-4 h-4 mr-2" /> Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer">
+                <Shield className="w-4 h-4 mr-2" /> Admin
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
+                <LogOut className="w-4 h-4 mr-2" /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
 
         {/* Content */}
