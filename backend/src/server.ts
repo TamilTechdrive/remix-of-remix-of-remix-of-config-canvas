@@ -13,6 +13,7 @@ import { attachFingerprint, trackSuspiciousActivity, securityHeaders } from './m
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import configRoutes from './routes/config.routes.js';
+import configDataRoutes from './routes/configData.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 
 const app = express();
@@ -119,6 +120,7 @@ app.get('/api/csrf-token', (req, res) => {
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/configurations', doubleCsrfProtection, configRoutes);
+app.use('/api/config-data', configDataRoutes);
 app.use('/api/audit', auditRoutes);
 
 // ===== HEALTH CHECK =====

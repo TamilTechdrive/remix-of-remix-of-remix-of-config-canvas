@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   Trash2, Copy, Link2, Unlink, Eye, EyeOff, ToggleLeft,
-  Zap, Sparkles, Clipboard, ExternalLink,
+  Sparkles, Clipboard, ExternalLink,
 } from 'lucide-react';
 import type { Node, Edge } from '@xyflow/react';
 import type { ConfigNodeData } from '@/types/configTypes';
@@ -34,14 +34,24 @@ const NodeContextMenu = ({
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClick = () => onClose();
-    if (state.show) {
-      document.addEventListener('click', handleClick);
+    if (!state.show) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as HTMLElement)) {
+        onClose();
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    // Delay adding listener so the opening right-click doesn't immediately close it
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClick);
       document.addEventListener('contextmenu', handleClick);
-    }
+      document.addEventListener('keydown', handleKey);
+    }, 10);
     return () => {
-      document.removeEventListener('click', handleClick);
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('contextmenu', handleClick);
+      document.removeEventListener('keydown', handleKey);
     };
   }, [state.show, onClose]);
 
@@ -59,8 +69,8 @@ const NodeContextMenu = ({
     { label: isIncluded ? 'Exclude Node' : 'Include Node', icon: ToggleLeft, action: () => onToggleIncluded(state.nodeId!), className: '' },
     { label: data.visible ? 'Hide Node' : 'Show Node', icon: data.visible ? EyeOff : Eye, action: () => onToggleVisible(state.nodeId!), className: '' },
     { type: 'separator' as const },
-    { label: `View Dependencies (${deps.length})`, icon: Link2, action: () => onShowInsights(state.nodeId!), className: '' },
-    { label: `View Dependents (${dependents.length})`, icon: ExternalLink, action: () => onShowInsights(state.nodeId!), className: '' },
+    { label: `Dependencies (${deps.length})`, icon: Link2, action: () => onShowInsights(state.nodeId!), className: '' },
+    { label: `Dependents (${dependents.length})`, icon: ExternalLink, action: () => onShowInsights(state.nodeId!), className: '' },
     { label: 'AI Insights', icon: Sparkles, action: () => onShowInsights(state.nodeId!), className: 'text-accent' },
     { type: 'separator' as const },
     { label: `Disconnect All (${connectionCount})`, icon: Unlink, action: () => onDisconnectAll(state.nodeId!), className: 'text-node-group', disabled: connectionCount === 0 },
@@ -72,12 +82,12 @@ const NodeContextMenu = ({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[200px] bg-popover border border-border rounded-lg shadow-xl py-1.5 animate-in fade-in-0 zoom-in-95"
+      className="fixed z-[100] min-w-[220px] bg-popover border border-border rounded-lg shadow-2xl py-1.5 animate-in fade-in-0 zoom-in-95"
       style={{ left: state.x, top: state.y }}
     >
-      <div className="px-3 py-1.5 border-b border-border mb-1">
+      <div className="px-3 py-2 border-b border-border mb-1">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{data.type}</p>
-        <p className="text-xs font-semibold text-foreground truncate max-w-[180px]">{data.label}</p>
+        <p className="text-xs font-semibold text-foreground truncate max-w-[190px]">{data.label}</p>
       </div>
       {menuItems.map((item, i) => {
         if ('type' in item && item.type === 'separator') {
@@ -89,7 +99,7 @@ const NodeContextMenu = ({
             key={i}
             disabled={disabled}
             onClick={(e) => { e.stopPropagation(); action(); onClose(); }}
-            className={`w-full flex items-center gap-2.5 px-3 py-1.5 text-xs hover:bg-accent/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${className}`}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-secondary/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed rounded-sm mx-0 ${className}`}
           >
             <Icon className="w-3.5 h-3.5 shrink-0" />
             {label}

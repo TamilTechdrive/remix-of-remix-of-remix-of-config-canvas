@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -22,10 +22,11 @@ import type { ConfigNodeData, ConfigNodeType } from '@/types/configTypes';
 import { SAMPLE_CONFIG } from '@/data/sampleConfig';
 import { analyzeFullGraph } from '@/engine/ruleEngine';
 import type { RuleIssue } from '@/engine/ruleEngine';
-import { AlertCircle, Sparkles } from 'lucide-react';
+import { AlertCircle, Sparkles, Save, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const nodeTypes: NodeTypes = { configNode: ConfigNode };
+const AUTO_SAVE_INTERVAL = 30000;
 
 const EditorCanvas = () => {
   const {
@@ -40,7 +41,39 @@ const EditorCanvas = () => {
 
   const [showInsights, setShowInsights] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({ show: false, x: 0, y: 0, nodeId: null });
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const { screenToFlowPosition, setCenter } = useReactFlow();
+
+  // Auto-save to localStorage
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const lastSaveRef = useRef<string>('');
+
+  useEffect(() => {
+    saveTimerRef.current = setInterval(() => {
+      const data = JSON.stringify({ nodes, edges });
+      if (data !== lastSaveRef.current) {
+        setAutoSaveStatus('saving');
+        try {
+          localStorage.setItem('configflow_autosave', data);
+          localStorage.setItem('configflow_autosave_time', new Date().toISOString());
+          lastSaveRef.current = data;
+          setAutoSaveStatus('saved');
+          setTimeout(() => setAutoSaveStatus('idle'), 2000);
+        } catch {
+          setAutoSaveStatus('idle');
+        }
+      }
+    }, AUTO_SAVE_INTERVAL);
+    return () => clearInterval(saveTimerRef.current);
+  }, [nodes, edges]);
+
+  // Load autosave on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('configflow_autosave');
+    if (saved) {
+      lastSaveRef.current = saved;
+    }
+  }, []);
 
   const graphAnalysis = useMemo(
     () => analyzeFullGraph(nodes, edges, SAMPLE_CONFIG),
@@ -74,6 +107,7 @@ const EditorCanvas = () => {
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: { id: string }) => {
       event.preventDefault();
+      event.stopPropagation();
       setContextMenu({ show: true, x: event.clientX, y: event.clientY, nodeId: node.id });
     },
     []
@@ -82,7 +116,6 @@ const EditorCanvas = () => {
   const onPaneClick = useCallback(() => {
     setSelectedNodeId(null);
     setShowInsights(false);
-    setContextMenu({ show: false, x: 0, y: 0, nodeId: null });
   }, [setSelectedNodeId]);
 
   const onFocusNode = useCallback(
@@ -130,6 +163,13 @@ const EditorCanvas = () => {
     [nodes, updateNodeData]
   );
 
+  const onEdgeClick = useCallback(
+    (_: React.MouseEvent, edge: { id: string }) => {
+      // Select edge for potential deletion
+    },
+    []
+  );
+
   return (
     <div className="h-full w-full flex flex-col bg-background">
       {/* Status bar */}
@@ -144,6 +184,18 @@ const EditorCanvas = () => {
           <span className="text-muted-foreground">{graphAnalysis.totalConflicts} conflicts</span>
         </div>
         <span className="text-muted-foreground ml-auto">{nodes.length} nodes · {edges.length} edges</span>
+        {/* Auto-save indicator */}
+        <div className="flex items-center gap-1.5 ml-2">
+          {autoSaveStatus === 'saving' && (
+            <><Loader2 className="w-3 h-3 text-primary animate-spin" /><span className="text-primary">Saving...</span></>
+          )}
+          {autoSaveStatus === 'saved' && (
+            <><CheckCircle2 className="w-3 h-3 text-node-module" /><span className="text-node-module">Saved</span></>
+          )}
+          {autoSaveStatus === 'idle' && (
+            <><Save className="w-3 h-3 text-muted-foreground/50" /><span className="text-muted-foreground/50">Auto-save</span></>
+          )}
+        </div>
       </div>
 
       <EditorToolbar
@@ -176,26 +228,29 @@ const EditorCanvas = () => {
           onPaneClick={onPaneClick}
           onDragOver={onDragOver}
           onDrop={onDrop}
+          onEdgeClick={onEdgeClick}
           fitView
           snapToGrid
           snapGrid={[16, 16]}
+          deleteKeyCode={['Backspace', 'Delete']}
           defaultEdgeOptions={{ type: 'smoothstep', animated: true }}
           proOptions={{ hideAttribution: true }}
+          edgesReconnectable
         >
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="hsl(220 14% 18%)" />
+          <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="hsl(222 14% 22%)" />
           <Controls />
           <MiniMap
             nodeColor={(node) => {
               const data = node.data as unknown as ConfigNodeData;
               const colors: Record<string, string> = {
-                container: 'hsl(200, 60%, 50%)',
-                module: 'hsl(160, 60%, 45%)',
-                group: 'hsl(35, 80%, 55%)',
-                option: 'hsl(260, 50%, 55%)',
+                container: 'hsl(200, 55%, 52%)',
+                module: 'hsl(168, 55%, 48%)',
+                group: 'hsl(38, 75%, 55%)',
+                option: 'hsl(250, 45%, 58%)',
               };
               return colors[data.type] || '#666';
             }}
-            maskColor="hsla(220, 16%, 10%, 0.8)"
+            maskColor="hsla(222, 20%, 14%, 0.8)"
           />
         </ReactFlow>
 
