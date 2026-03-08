@@ -101,7 +101,7 @@ const NodeContextMenu = ({
     <div
       ref={menuRef}
       className="fixed z-[100] min-w-[240px] bg-popover border border-border rounded-lg shadow-2xl py-1.5 animate-in fade-in-0 zoom-in-95"
-      style={{ left: state.x, top: state.y }}
+      style={{ left: adjustedPos.x, top: adjustedPos.y }}
     >
       {/* Header */}
       <div className="px-3 py-2 border-b border-border mb-1">
