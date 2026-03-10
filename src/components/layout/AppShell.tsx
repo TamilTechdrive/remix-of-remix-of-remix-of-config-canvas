@@ -25,6 +25,7 @@ const navItems = [
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/management', icon: Settings, label: 'Management' },
   { to: '/admin', icon: Shield, label: 'Admin Panel' },
+  { to: '/parser-data', icon: FileCode, label: 'Parser Data' },
   { to: '/profile', icon: User, label: 'Profile' },
 ];
 
