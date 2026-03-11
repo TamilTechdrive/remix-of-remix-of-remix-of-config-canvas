@@ -52,8 +52,9 @@ const EditorCanvas = ({ initialNodes, initialEdges, onSave }: EditorCanvasProps)
 
   const [searchParams] = useSearchParams();
   const parserSessionId = searchParams.get('parserSession');
+  const configId = searchParams.get('configId');
 
-  // Load parser session data if parserSession query param is present
+  // Load parser session data (preview mode - not persisted)
   useEffect(() => {
     if (!parserSessionId) return;
     const loadParserData = async () => {
@@ -67,6 +68,24 @@ const EditorCanvas = ({ initialNodes, initialEdges, onSave }: EditorCanvasProps)
     };
     loadParserData();
   }, [parserSessionId]);
+
+  // Load persisted config from DB (real data mode)
+  useEffect(() => {
+    if (!configId) return;
+    const loadConfigFromDB = async () => {
+      try {
+        const res = await projectApi.loadConfig(configId);
+        const { nodes: dbNodes, edges: dbEdges, config } = res.data;
+        if (dbNodes?.length) {
+          replaceAll(dbNodes, dbEdges || []);
+          toast.success('Config Loaded from DB', { description: `${config.name} — ${dbNodes.length} nodes` });
+        }
+      } catch (err) {
+        toast.error('Failed to load configuration from database');
+      }
+    };
+    loadConfigFromDB();
+  }, [configId]);
 
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
