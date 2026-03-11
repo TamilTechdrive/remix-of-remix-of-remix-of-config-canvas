@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { toast } from 'sonner';
 import {
   Upload, Database, FileCode, FileText, Download, Trash2, ChevronDown, ChevronRight,
-  Layers, GitBranch, Hash, Eye, Loader2, RefreshCw, FileSpreadsheet,
+  Layers, GitBranch, Hash, Eye, Loader2, RefreshCw, FileSpreadsheet, ExternalLink,
 } from 'lucide-react';
 import api from '@/services/api';
 
@@ -36,6 +37,7 @@ const parserApi = {
 };
 
 export default function ParserData() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [sessionName, setSessionName] = useState('');
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
@@ -210,6 +212,17 @@ export default function ParserData() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/editor?parserSession=${s.id}`);
+                      }}
+                      title="Load in Config Editor"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-1" /> Editor
+                    </Button>
                     <span className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</span>
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(s.id); }}>
                       <Trash2 className="h-4 w-4 text-destructive" />
@@ -230,7 +243,10 @@ export default function ParserData() {
               <CardTitle className="text-lg flex items-center gap-2">
                 <Eye className="h-5 w-5" /> Session Data
               </CardTitle>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                <Button size="sm" onClick={() => navigate(`/editor?parserSession=${selectedSession}`)}>
+                  <ExternalLink className="h-4 w-4 mr-1" /> Open in Config Editor
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => handleExport('summary')}>
                   <FileSpreadsheet className="h-4 w-4 mr-1" /> Summary
                 </Button>

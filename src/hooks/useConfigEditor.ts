@@ -392,6 +392,15 @@ th{color:#4dd68e;font-size:.8rem;text-transform:uppercase}
     toast.success('Sample Loaded', { description: `${parsed.nodes.length} nodes, ${parsed.edges.length} edges` });
   }, []);
 
+  const loadRawConfig = useCallback((config: import('@/data/sampleConfig').RawConfig, label?: string) => {
+    const parsed = parseConfigToFlow(config);
+    setNodes(parsed.nodes);
+    setEdges(parsed.edges);
+    idCounter.current = parsed.maxId;
+    setSelectedNodeId(null);
+    toast.success(label || 'Config Loaded', { description: `${parsed.nodes.length} nodes, ${parsed.edges.length} edges` });
+  }, []);
+
   // Auto-resolve all fixable issues
   const autoResolveAll = useCallback((fixes: Array<{ action: string; payload: Record<string, string> }>) => {
     setNodes((nds) => {
@@ -526,6 +535,7 @@ th{color:#4dd68e;font-size:.8rem;text-transform:uppercase}
     disconnectAllEdges,
     disconnectEdge,
     replaceAll,
+    loadRawConfig,
   };
 };
 

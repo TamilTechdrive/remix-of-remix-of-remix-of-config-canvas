@@ -21,6 +21,9 @@ import { useConfigEditor } from '@/hooks/useConfigEditor';
 import type { ConfigNodeData, ConfigNodeType } from '@/types/configTypes';
 import { SAMPLE_CONFIG } from '@/data/sampleConfig';
 import { analyzeFullGraph } from '@/engine/ruleEngine';
+import { useSearchParams } from 'react-router-dom';
+import { sessionDetailToRawConfig } from '@/data/parserToConfig';
+import api from '@/services/api';
 import type { RuleIssue } from '@/engine/ruleEngine';
 import { AlertCircle, Sparkles, Save, CheckCircle2, Loader2, Power } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,8 +48,26 @@ const EditorCanvas = ({ initialNodes, initialEdges, onSave }: EditorCanvasProps)
     deleteNode, setSelectedNodeId,
     exportConfig, importConfig, loadSampleData, autoResolveAll,
     addUserRule, removeUserRule, updateNodeMeta,
-    disconnectAllEdges, disconnectEdge, replaceAll,
+    disconnectAllEdges, disconnectEdge, replaceAll, loadRawConfig,
   } = useConfigEditor(initialNodes !== undefined ? { initialNodes, initialEdges } : undefined);
+
+  const [searchParams] = useSearchParams();
+  const parserSessionId = searchParams.get('parserSession');
+
+  // Load parser session data if parserSession query param is present
+  useEffect(() => {
+    if (!parserSessionId) return;
+    const loadParserData = async () => {
+      try {
+        const res = await api.get(`/parser/sessions/${parserSessionId}`);
+        const rawConfig = sessionDetailToRawConfig(res.data);
+        loadRawConfig(rawConfig, 'Parser Data Loaded');
+      } catch (err) {
+        toast.error('Failed to load parser session data');
+      }
+    };
+    loadParserData();
+  }, [parserSessionId]);
 
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
