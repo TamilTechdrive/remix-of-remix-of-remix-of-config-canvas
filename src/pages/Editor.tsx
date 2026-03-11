@@ -48,8 +48,26 @@ const EditorCanvas = ({ initialNodes, initialEdges, onSave }: EditorCanvasProps)
     deleteNode, setSelectedNodeId,
     exportConfig, importConfig, loadSampleData, autoResolveAll,
     addUserRule, removeUserRule, updateNodeMeta,
-    disconnectAllEdges, disconnectEdge, replaceAll,
+    disconnectAllEdges, disconnectEdge, replaceAll, loadRawConfig,
   } = useConfigEditor(initialNodes !== undefined ? { initialNodes, initialEdges } : undefined);
+
+  const [searchParams] = useSearchParams();
+  const parserSessionId = searchParams.get('parserSession');
+
+  // Load parser session data if parserSession query param is present
+  useEffect(() => {
+    if (!parserSessionId) return;
+    const loadParserData = async () => {
+      try {
+        const res = await api.get(`/parser/sessions/${parserSessionId}`);
+        const rawConfig = sessionDetailToRawConfig(res.data);
+        loadRawConfig(rawConfig, 'Parser Data Loaded');
+      } catch (err) {
+        toast.error('Failed to load parser session data');
+      }
+    };
+    loadParserData();
+  }, [parserSessionId]);
 
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
