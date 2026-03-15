@@ -4,9 +4,13 @@
  *
  * Mapping:
  *   Container = Parser Session Root
- *   Module    = Source File (ProcessedFiles entries)
- *   Group     = VarType category (DEFINITION, MACRO, CONDITIONAL, CONTROL, etc.)
+ *   Module    = Source Module (eDBE, epress, egos, eintr, ekernal, etc.)
+ *   Group     = VarType category per source file (DEFINITION, MACRO, CONDITIONAL, etc.)
  *   Option    = Individual DefineVar
+ *
+ * IncludedFiles are NOT options - they are metadata references showing
+ * which files include this source and at what line. They are stored
+ * as properties on the module for diagnostic/reference purposes.
  */
 import type { RawConfig, RawModule, RawGroup, RawOption, RawRule } from './sampleConfig';
 
@@ -35,7 +39,13 @@ interface ParserDefineVar {
       CondSLNR: string;
     };
   };
-  AllHitInfo: Array<{ HitMode?: string; VarType?: string; Depth?: number; HitSLNR?: string }>;
+  AllHitInfo: Array<{
+    HitMode?: string;
+    VarType?: string;
+    HitSrcScope?: string;
+    Depth?: number;
+    HitSLNR?: string;
+  }>;
   ParList: string[];
   SibList: string[];
   ChList: string[];
@@ -53,9 +63,28 @@ function extractSourceFile(slnr: string): string {
   if (!slnr) return 'unknown';
   const parts = slnr.split(':#');
   const filePath = parts[0] || 'unknown';
-  // Get just the filename
   const segments = filePath.replace(/\\\\/g, '\\').split('\\');
   return segments[segments.length - 1] || filePath;
+}
+
+// Extract line number from HitSLNR
+function extractLineNumber(slnr: string): number {
+  if (!slnr) return 0;
+  const parts = slnr.split(':#');
+  return parseInt(parts[1] || '0', 10) || 0;
+}
+
+// Extract module name from full path like "Samples\\eDBE\\src\\..." → "eDBE"
+function extractModule(filePath: string): string {
+  if (!filePath) return 'unknown';
+  const normalized = filePath.replace(/\\\\/g, '\\').replace(/\//g, '\\');
+  const parts = normalized.split('\\');
+  const samplesIdx = parts.findIndex(p => p.toLowerCase() === 'samples');
+  if (samplesIdx >= 0 && parts.length > samplesIdx + 1) {
+    return parts[samplesIdx + 1];
+  }
+  if (parts.length >= 2) return parts[parts.length >= 3 ? parts.length - 3 : 0];
+  return 'unknown';
 }
 
 // Categorize VarType into user-friendly group names
@@ -73,109 +102,146 @@ export function parserJsonToRawConfig(data: ParserJSON, sessionName?: string): R
   const defineVars = data.DefineVars || {};
   const processedFiles = data.ProcessedFiles || [];
 
-  // Group define vars by source file
-  const varsByFile: Record<string, { varName: string; varData: ParserDefineVar }[]> = {};
-  
+  // Build includedFiles lookup: which files are included in which source
+  const includesBySource: Record<string, { name: string; lineRef: string; lineNumber: number }[]> = {};
+  if (data.IncludedFiles?.length) {
+    for (const inc of data.IncludedFiles) {
+      const srcFile = extractSourceFile(inc.SrcLineRef);
+      if (!includesBySource[srcFile]) includesBySource[srcFile] = [];
+      includesBySource[srcFile].push({
+        name: inc.IncFName.replace(/"/g, ''),
+        lineRef: inc.SrcLineRef,
+        lineNumber: extractLineNumber(inc.SrcLineRef),
+      });
+    }
+  }
+
+  // Group processed files by module
+  const filesByModule: Record<string, ParserProcessedFile[]> = {};
+  for (const pf of processedFiles) {
+    const mod = extractModule(pf.FNameFull);
+    if (!filesByModule[mod]) filesByModule[mod] = [];
+    filesByModule[mod].push(pf);
+  }
+
+  // Group define vars by module, then by source file
+  const varsByModuleAndFile: Record<string, Record<string, { varName: string; varData: ParserDefineVar }[]>> = {};
   for (const [varName, varData] of Object.entries(defineVars)) {
-    const sourceFile = extractSourceFile(varData['1stHitInfo']?.HitSLNR || '');
-    if (!varsByFile[sourceFile]) varsByFile[sourceFile] = [];
-    varsByFile[sourceFile].push({ varName, varData });
+    const slnr = varData['1stHitInfo']?.HitSLNR || '';
+    const mod = extractModule(slnr.split(':#')[0] || '');
+    const sourceFile = extractSourceFile(slnr);
+    if (!varsByModuleAndFile[mod]) varsByModuleAndFile[mod] = {};
+    if (!varsByModuleAndFile[mod][sourceFile]) varsByModuleAndFile[mod][sourceFile] = [];
+    varsByModuleAndFile[mod][sourceFile].push({ varName, varData });
   }
 
   let groupIdCounter = 10;
   let optionIdCounter = 100;
 
-  const modules: RawModule[] = processedFiles.map((pf, idx) => {
-    const fileName = pf.FName;
-    const fileVars = varsByFile[fileName] || [];
+  // Build modules grouped by source module (eDBE, epress, etc.)
+  const allModuleNames = new Set<string>();
+  Object.keys(filesByModule).forEach(m => allModuleNames.add(m));
+  Object.keys(varsByModuleAndFile).forEach(m => allModuleNames.add(m));
 
-    // Group vars by VarType within this file
-    const varsByType: Record<string, { varName: string; varData: ParserDefineVar }[]> = {};
-    for (const v of fileVars) {
-      const varType = v.varData['1stHitInfo']?.VarType || 'UNKNOWN';
-      if (!varsByType[varType]) varsByType[varType] = [];
-      varsByType[varType].push(v);
-    }
+  const modules: RawModule[] = Array.from(allModuleNames).map((moduleName) => {
+    const moduleFiles = filesByModule[moduleName] || [];
+    const moduleVars = varsByModuleAndFile[moduleName] || {};
 
-    const groups: RawGroup[] = Object.entries(varsByType).map(([varType, vars]) => {
-      const groupId = groupIdCounter++;
-      const options: RawOption[] = vars.map((v) => {
-        const optId = optionIdCounter++;
-        const hitScope = v.varData['1stHitInfo']?.HitSrcScope || '';
-        const hasCondOrd = !!v.varData['1stHitInfo']?.CondOrd;
-        
-        return {
-          id: optId,
-          key: v.varName.toLowerCase(),
-          name: v.varName,
-          editable: true,
-          included: hitScope === 'DEF-LHS' && !hasCondOrd, // Direct defs are included, conditional ones are not
-        };
-      });
-
-      return {
-        id: groupId,
-        name: VAR_TYPE_GROUPS[varType] || varType,
-        options,
-      };
-    });
-
-    // If no groups from defines, create a placeholder from file stats
-    if (groups.length === 0) {
-      groups.push({
-        id: groupIdCounter++,
-        name: 'File Properties',
-        options: [
-          { id: optionIdCounter++, key: `${fileName}_cond_blocks`, name: `Conditional Blocks (${pf.CondNestBlk})`, editable: false, included: pf.CondNestBlk > 0 },
-          { id: optionIdCounter++, key: `${fileName}_def_hits`, name: `Define Hits (${pf.DefHitCnt})`, editable: false, included: pf.DefHitCnt > 0 },
-          { id: optionIdCounter++, key: `${fileName}_macros`, name: `Macros (${pf.MacroHitCnt})`, editable: false, included: pf.MacroHitCnt > 0 },
-        ],
-      });
-    }
-
-    // Build rules from parent/child/sibling relationships
+    const groups: RawGroup[] = [];
     const rules: RawRule[] = [];
-    for (const v of fileVars) {
-      const optionKey = v.varName.toLowerCase();
-      
-      // Parent relationships → requires
-      if (v.varData.ParList?.length > 0) {
-        rules.push({
-          option_key: optionKey,
-          requires: v.varData.ParList.map((p) => p.toLowerCase()),
-          suggestion: `${v.varName} depends on parent define(s): ${v.varData.ParList.join(', ')}`,
-          impact_level: 'high',
-          tags: ['dependency', v.varData['1stHitInfo']?.VarType?.toLowerCase() || 'unknown'],
+
+    // For each source file in this module, create groups by VarType
+    for (const pf of moduleFiles) {
+      const fileName = pf.FName;
+      const fileVars = moduleVars[fileName] || [];
+
+      // Get includes for this file (metadata, NOT options)
+      const fileIncludes = includesBySource[fileName] || [];
+
+      // Group vars by VarType within this file
+      const varsByType: Record<string, { varName: string; varData: ParserDefineVar }[]> = {};
+      for (const v of fileVars) {
+        const varType = v.varData['1stHitInfo']?.VarType || 'UNKNOWN';
+        if (!varsByType[varType]) varsByType[varType] = [];
+        varsByType[varType].push(v);
+      }
+
+      for (const [varType, vars] of Object.entries(varsByType)) {
+        const groupId = groupIdCounter++;
+        const options: RawOption[] = vars.map((v) => {
+          const optId = optionIdCounter++;
+          const hitScope = v.varData['1stHitInfo']?.HitSrcScope || '';
+          const hasCondOrd = !!v.varData['1stHitInfo']?.CondOrd;
+          const lineNum = extractLineNumber(v.varData['1stHitInfo']?.HitSLNR || '');
+
+          return {
+            id: optId,
+            key: v.varName.toLowerCase(),
+            name: v.varName,
+            editable: true,
+            included: hitScope === 'DEF-LHS' && !hasCondOrd,
+          };
+        });
+
+        groups.push({
+          id: groupId,
+          name: `${fileName} → ${VAR_TYPE_GROUPS[varType] || varType}`,
+          options,
         });
       }
 
-      // Sibling relationships → can be co-enabled
-      if (v.varData.SibList?.length > 0) {
-        rules.push({
-          option_key: optionKey,
-          requires: v.varData.SibList.map((s) => s.toLowerCase()),
-          suggestion: `${v.varName} is related to sibling(s): ${v.varData.SibList.join(', ')}`,
-          impact_level: 'low',
-          tags: ['sibling'],
+      // If this file has no defines but has stats, add a file properties group
+      if (Object.keys(varsByType).length === 0 && (pf.CondNestBlk > 0 || pf.DefHitCnt > 0 || pf.MacroHitCnt > 0)) {
+        groups.push({
+          id: groupIdCounter++,
+          name: `${fileName} → File Properties`,
+          options: [
+            { id: optionIdCounter++, key: `${fileName}_cond_blocks`, name: `Conditional Blocks (${pf.CondNestBlk})`, editable: false, included: pf.CondNestBlk > 0 },
+            { id: optionIdCounter++, key: `${fileName}_def_hits`, name: `Define Hits (${pf.DefHitCnt})`, editable: false, included: pf.DefHitCnt > 0 },
+            { id: optionIdCounter++, key: `${fileName}_macros`, name: `Macros (${pf.MacroHitCnt})`, editable: false, included: pf.MacroHitCnt > 0 },
+          ],
         });
       }
 
-      // Conditional ordering → must_enable constraint
-      if (v.varData['1stHitInfo']?.CondOrd) {
-        const condDir = v.varData['1stHitInfo'].CondOrd.CondDir;
-        if (condDir === 'else' || condDir === 'elif') {
+      // Build rules from relationships
+      for (const v of fileVars) {
+        const optionKey = v.varName.toLowerCase();
+
+        if (v.varData.ParList?.length > 0) {
           rules.push({
             option_key: optionKey,
-            must_disable: true,
-            suggestion: `${v.varName} is in a #${condDir} branch — may be conditionally excluded`,
-            impact_level: 'medium',
-            tags: ['conditional', condDir],
+            requires: v.varData.ParList.map((p) => p.toLowerCase()),
+            suggestion: `${v.varName} depends on parent define(s): ${v.varData.ParList.join(', ')}`,
+            impact_level: 'high',
+            tags: ['dependency', v.varData['1stHitInfo']?.VarType?.toLowerCase() || 'unknown'],
           });
+        }
+
+        if (v.varData.SibList?.length > 0) {
+          rules.push({
+            option_key: optionKey,
+            requires: v.varData.SibList.map((s) => s.toLowerCase()),
+            suggestion: `${v.varName} is related to sibling(s): ${v.varData.SibList.join(', ')}`,
+            impact_level: 'low',
+            tags: ['sibling'],
+          });
+        }
+
+        if (v.varData['1stHitInfo']?.CondOrd) {
+          const condDir = v.varData['1stHitInfo'].CondOrd.CondDir;
+          if (condDir === 'else' || condDir === 'elif') {
+            rules.push({
+              option_key: optionKey,
+              must_disable: true,
+              suggestion: `${v.varName} is in a #${condDir} branch — may be conditionally excluded`,
+              impact_level: 'medium',
+              tags: ['conditional', condDir],
+            });
+          }
         }
       }
     }
 
-    // Build states from conditional structure
     const states: Record<string, Record<string, string>> = {
       idle: { PARSE: 'processing' },
       processing: { COMPLETE: 'resolved', ERROR: 'error' },
@@ -184,49 +250,14 @@ export function parserJsonToRawConfig(data: ParserJSON, sessionName?: string): R
     };
 
     return {
-      id: `file_${fileName.replace(/\./g, '_')}`,
-      name: fileName,
+      id: `module_${moduleName.replace(/[^a-zA-Z0-9]/g, '_')}`,
+      name: moduleName,
       initial: 'idle',
       groups,
       rules,
       states,
     };
   });
-
-  // Add a module for included files as well
-  if (data.IncludedFiles?.length) {
-    // Group includes by source file
-    const includesBySource: Record<string, string[]> = {};
-    for (const inc of data.IncludedFiles) {
-      const src = extractSourceFile(inc.SrcLineRef);
-      if (!includesBySource[src]) includesBySource[src] = [];
-      includesBySource[src].push(inc.IncFName.replace(/"/g, ''));
-    }
-
-    const includeGroups: RawGroup[] = Object.entries(includesBySource).map(([srcFile, includes]) => ({
-      id: groupIdCounter++,
-      name: `From ${srcFile}`,
-      options: includes.map((inc) => ({
-        id: optionIdCounter++,
-        key: `inc_${inc.replace(/[^a-zA-Z0-9]/g, '_')}`,
-        name: inc,
-        editable: false,
-        included: true,
-      })),
-    }));
-
-    modules.push({
-      id: 'included_headers',
-      name: 'Included Headers',
-      initial: 'idle',
-      groups: includeGroups,
-      rules: [],
-      states: {
-        idle: { RESOLVE: 'resolved' },
-        resolved: { REFRESH: 'idle' },
-      },
-    });
-  }
 
   return { modules };
 }
@@ -236,7 +267,6 @@ export function parserJsonToRawConfig(data: ParserJSON, sessionName?: string): R
  * Used when loading a seeded parser session into the config editor.
  */
 export function sessionDetailToRawConfig(detail: any): RawConfig {
-  // Reconstruct the parser JSON structure from the session detail
   const parserJson: ParserJSON = {
     ProcessedFiles: (detail.processedFiles || []).map((f: any) => ({
       FileType: f.file_type,
@@ -257,7 +287,6 @@ export function sessionDetailToRawConfig(detail: any): RawConfig {
     DefineVars: {},
   };
 
-  // Reconstruct DefineVars from enriched data
   for (const dv of (detail.defineVars || [])) {
     parserJson.DefineVars[dv.var_name] = {
       '1stHitInfo': {
@@ -275,6 +304,7 @@ export function sessionDetailToRawConfig(detail: any): RawConfig {
       AllHitInfo: (dv.allHits || []).map((h: any) => ({
         HitMode: h.hit_mode,
         VarType: h.var_type,
+        HitSrcScope: h.hit_src_scope,
         Depth: h.depth,
         HitSLNR: h.hit_slnr,
       })),
