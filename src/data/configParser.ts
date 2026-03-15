@@ -4,7 +4,7 @@
  * then positions parents centered over their children.
  */
 import type { Node, Edge } from '@xyflow/react';
-import type { RawConfig } from './sampleConfig';
+import type { RawConfig, RawOption } from './sampleConfig';
 import type { ConfigNodeData } from '@/types/configTypes';
 
 interface ParseResult {
