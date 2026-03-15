@@ -173,6 +173,24 @@ export function parserJsonToRawConfig(data: ParserJSON, sessionName?: string): R
           const hitScope = v.varData['1stHitInfo']?.HitSrcScope || '';
           const hasCondOrd = !!v.varData['1stHitInfo']?.CondOrd;
           const lineNum = extractLineNumber(v.varData['1stHitInfo']?.HitSLNR || '');
+          const srcFile = extractSourceFile(v.varData['1stHitInfo']?.HitSLNR || '');
+          const fullPath = (v.varData['1stHitInfo']?.HitSLNR || '').split(':#')[0] || '';
+          const mod = extractModule(fullPath);
+
+          // Generate diagnostic message
+          const diagParts: string[] = [];
+          let diagLevel = 'info';
+          if (hasCondOrd) {
+            diagLevel = 'warning';
+            const condDir = v.varData['1stHitInfo']?.CondOrd?.CondDir || '';
+            diagParts.push(`Conditionally defined under #${condDir}. May not be available if condition is not met.`);
+          }
+          if (v.varData.ParList?.length > 0) {
+            diagParts.push(`Depends on: ${v.varData.ParList.join(', ')}`);
+          }
+          if (v.varData.ChList?.length > 0) {
+            diagParts.push(`Required by: ${v.varData.ChList.join(', ')}`);
+          }
 
           return {
             id: optId,
@@ -180,7 +198,16 @@ export function parserJsonToRawConfig(data: ParserJSON, sessionName?: string): R
             name: v.varName,
             editable: true,
             included: hitScope === 'DEF-LHS' && !hasCondOrd,
-          };
+            // Extended source properties (will be passed through to node data)
+            _sourceFile: srcFile,
+            _sourceLine: lineNum,
+            _sourceModule: mod,
+            _sourceFullPath: fullPath,
+            _hitSrcScope: hitScope,
+            _varType: v.varData['1stHitInfo']?.VarType || '',
+            _diagnosticLevel: diagLevel,
+            _diagnosticMessage: diagParts.join(' | ') || `Direct ${v.varData['1stHitInfo']?.VarType || 'DEFINE'} at scope ${hitScope}.`,
+          } as RawOption & Record<string, unknown>;
         });
 
         groups.push({

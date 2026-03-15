@@ -25,7 +25,8 @@ import { useSearchParams } from 'react-router-dom';
 import { sessionDetailToRawConfig } from '@/data/parserToConfig';
 import api, { projectApi } from '@/services/api';
 import type { RuleIssue } from '@/engine/ruleEngine';
-import { AlertCircle, Sparkles, Save, CheckCircle2, Loader2, Power } from 'lucide-react';
+import { AlertCircle, Sparkles, Save, CheckCircle2, Loader2, Power, FileCode } from 'lucide-react';
+import SourceInfoPanel from '@/components/editor/SourceInfoPanel';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
@@ -91,7 +92,7 @@ const EditorCanvas = ({ initialNodes, initialEdges, onSave }: EditorCanvasProps)
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const [compareOpen, setCompareOpen] = useState(false);
-  const [rightPanel, setRightPanel] = useState<'none' | 'actions' | 'properties'>('none');
+  const [rightPanel, setRightPanel] = useState<'none' | 'actions' | 'properties' | 'source'>('none');
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(() => {
     const stored = localStorage.getItem('configflow_autosave_enabled');
     return stored !== null ? stored === 'true' : true;
@@ -495,6 +496,13 @@ const EditorCanvas = ({ initialNodes, initialEdges, onSave }: EditorCanvasProps)
               >
                 AI Actions
               </button>
+              <button
+                onClick={() => setRightPanel('source')}
+                className={`px-3 py-2 text-xs font-medium transition-colors flex items-center gap-1 ${rightPanel === 'source' ? 'text-primary border-b-2 border-primary bg-card' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <FileCode className="w-3 h-3" />
+                Source
+              </button>
             </div>
 
             {rightPanel === 'actions' && (
@@ -527,6 +535,18 @@ const EditorCanvas = ({ initialNodes, initialEdges, onSave }: EditorCanvasProps)
                   onAutoAdd={autoAddChild}
                   edges={edges}
                   allNodes={nodes}
+                />
+              </div>
+            )}
+
+            {rightPanel === 'source' && (
+              <div className="flex-1 min-h-0">
+                <SourceInfoPanel
+                  nodeId={selectedNodeId!}
+                  nodes={nodes}
+                  edges={edges}
+                  onClose={() => setRightPanel('none')}
+                  onFocusNode={onFocusNode}
                 />
               </div>
             )}

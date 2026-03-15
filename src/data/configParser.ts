@@ -4,7 +4,7 @@
  * then positions parents centered over their children.
  */
 import type { Node, Edge } from '@xyflow/react';
-import type { RawConfig } from './sampleConfig';
+import type { RawConfig, RawOption } from './sampleConfig';
 import type { ConfigNodeData } from '@/types/configTypes';
 
 interface ParseResult {
@@ -138,6 +138,20 @@ export const parseConfigToFlow = (config: RawConfig): ParseResult => {
         const optionId = nextId();
         optionKeyToNodeId[opt.key] = optionId;
 
+        // Extract extended source properties if present (from parser data)
+        const extOpt = opt as RawOption & Record<string, unknown>;
+        const sourceProps: Record<string, unknown> = {
+          key: opt.key, editable: opt.editable, included: opt.included, optionId: opt.id,
+        };
+        if (extOpt._sourceFile) sourceProps.sourceFile = extOpt._sourceFile;
+        if (extOpt._sourceLine) sourceProps.sourceLine = extOpt._sourceLine;
+        if (extOpt._sourceModule) sourceProps.sourceModule = extOpt._sourceModule;
+        if (extOpt._sourceFullPath) sourceProps.sourceFullPath = extOpt._sourceFullPath;
+        if (extOpt._hitSrcScope) sourceProps.hitSrcScope = extOpt._hitSrcScope;
+        if (extOpt._varType) sourceProps.varType = extOpt._varType;
+        if (extOpt._diagnosticLevel) sourceProps.diagnosticLevel = extOpt._diagnosticLevel;
+        if (extOpt._diagnosticMessage) sourceProps.diagnosticMessage = extOpt._diagnosticMessage;
+
         const optionFlowNode: Node = {
           id: optionId,
           type: 'configNode',
@@ -146,7 +160,7 @@ export const parseConfigToFlow = (config: RawConfig): ParseResult => {
             label: opt.name,
             type: 'option',
             description: opt.included ? 'Included' : 'Not included',
-            properties: { key: opt.key, editable: opt.editable, included: opt.included, optionId: opt.id },
+            properties: sourceProps,
           }),
         };
         nodes.push(optionFlowNode);
