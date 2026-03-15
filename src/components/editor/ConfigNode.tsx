@@ -1,10 +1,11 @@
-import { memo, useMemo, useCallback } from 'react';
+import { memo, useMemo, useCallback, useState } from 'react';
 import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from '@xyflow/react';
-import { Box, Puzzle, Layers, ToggleLeft, GripVertical, AlertCircle, AlertTriangle, CheckCircle2, X, Power } from 'lucide-react';
+import { Box, Puzzle, Layers, ToggleLeft, GripVertical, AlertCircle, AlertTriangle, CheckCircle2, X, Power, MapPin } from 'lucide-react';
 import type { ConfigNodeData, ConfigNodeType } from '@/types/configTypes';
 import { analyzeNode } from '@/engine/ruleEngine';
 import { SAMPLE_CONFIG } from '@/data/sampleConfig';
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import NodeSourceTooltip from './NodeSourceTooltip';
 const iconMap: Record<ConfigNodeType, React.ElementType> = {
   container: Box,
   module: Puzzle,
