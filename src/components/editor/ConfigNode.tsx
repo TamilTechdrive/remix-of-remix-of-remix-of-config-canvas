@@ -44,6 +44,7 @@ const ConfigNode = ({ id, data, selected }: NodeProps) => {
   const warningCount = analysis.issues.filter((i) => i.severity === 'warning').length;
   const isIncluded = nodeData.properties?.included === true;
   const isExcluded = nodeData.properties?.included === false;
+  const hasSourceInfo = !!(nodeData.properties?.sourceFile || nodeData.properties?.sourceModule);
 
   const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
